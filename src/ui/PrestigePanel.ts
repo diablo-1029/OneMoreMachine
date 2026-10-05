@@ -3,6 +3,7 @@ import { earningsForStars, saleMultiplier, starsForEarnings, startingMoney } fro
 import type { Simulation } from '../core/game/Simulation';
 import { ENVIRONMENTS } from '../data/environments';
 import { el, setText } from './dom';
+import { conceal, isRevealed, reveal } from './reveal';
 
 const percent = (multiplier: number) => `+${Math.round((multiplier - 1) * 100)}%`;
 
@@ -111,19 +112,19 @@ export class PrestigePanel {
   }
 
   get isOpen(): boolean {
-    return !this.overlay.classList.contains('hidden');
+    return isRevealed(this.overlay);
   }
 
-  open(): void {
+  open(anchor?: HTMLElement | null): void {
     this.armed = false;
     this.siteId = this.sim.state.environment;
-    this.overlay.classList.remove('hidden');
+    reveal(this.overlay, anchor);
     this.update();
     this.onOpenChange(true);
   }
 
   close(): void {
-    this.overlay.classList.add('hidden');
+    conceal(this.overlay);
     this.onOpenChange(false);
   }
 

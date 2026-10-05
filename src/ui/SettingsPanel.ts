@@ -1,4 +1,4 @@
-import type { GameSettings } from '../core/save/SaveSchema';
+import { UI_SCALES, type GameSettings, type MotionPreference } from '../core/save/SaveSchema';
 import {
   BELT_STYLES,
   describeRequirement,
@@ -10,6 +10,8 @@ import {
   type CosmeticRequirement,
 } from '../data/cosmetics';
 import { el } from './dom';
+import { conceal, isRevealed, reveal } from './reveal';
+import { attachTooltip } from './Tooltip';
 
 export interface SettingsActions {
   /** Called on every change with the full, updated settings. */
@@ -31,6 +33,7 @@ const CONTROLS: [string, string][] = [
   ['Q / E', 'Rotate view'],
   ['R', 'Rotate piece'],
   ['1 – 9, 0', 'Build tools'],
+  ['`', 'Next group of tools'],
   ['F', 'Pick tool under cursor'],
   ['X', 'Delete tool'],
   ['B', 'Bottleneck view'],
@@ -101,6 +104,34 @@ export class SettingsPanel {
       return el('div', { class: 'setting cosmetic-setting' }, [el('span', { text: label }), choices]);
     };
 
+    // A row of choices where exactly one is always picked.
+    const choiceRow = <T>(label: string, options: { value: T; name: string }[], current: () => T, choose: (value: T) => void) => {
+      const choices = el('div', { class: 'cosmetic-choices', attrs: { role: 'radiogroup', 'aria-label': label } });
+      const refresh = () => {
+        options.forEach((option, index) => {
+          const picked = option.value === current();
+          choices.children[index].classList.toggle('active', picked);
+          choices.children[index].setAttribute('aria-checked', String(picked));
+        });
+      };
+      for (const option of options) {
+        choices.append(
+          el('button', {
+            class: 'recipe-choice',
+            text: option.name,
+            attrs: { type: 'button', role: 'radio' },
+            onClick: () => {
+              choose(option.value);
+              actions.onChange(this.settings);
+              refresh();
+            },
+          }),
+        );
+      }
+      refresh();
+      return el('div', { class: 'setting cosmetic-setting' }, [el('span', { text: label }), choices]);
+    };
+
     const buttons: HTMLElement[] = [];
     if (actions.onSaveNow) {
       buttons.push(el('button', { class: 'button', text: 'Save now', attrs: { type: 'button' }, onClick: actions.onSaveNow }));
@@ -123,6 +154,23 @@ export class SettingsPanel {
       toggle('Sound effects', 'sfx'),
       toggle('Music', 'music'),
       toggle('Shadows', 'shadows'),
+      el('h3', { class: 'modal-subtitle', text: 'Interface' }),
+      choiceRow(
+        'Size',
+        UI_SCALES.map((value) => ({ value: value as number, name: Math.round(value * 100) + '%' })),
+        () => this.settings.uiScale,
+        (value) => (this.settings.uiScale = value),
+      ),
+      choiceRow<MotionPreference>(
+        'Reduce motion',
+        [
+          { value: 'system', name: 'Match system' },
+          { value: 'on', name: 'On' },
+          { value: 'off', name: 'Off' },
+        ],
+        () => this.settings.reduceMotion,
+        (value) => (this.settings.reduceMotion = value),
+      ),
       el('h3', { class: 'modal-subtitle', text: 'Look' }),
       cosmeticRow('Floor', 'floor', FLOOR_STYLES),
       cosmeticRow('Belts', 'belt', BELT_STYLES),
@@ -147,7 +195,7 @@ export class SettingsPanel {
   }
 
   get isOpen(): boolean {
-    return !this.overlay.classList.contains('hidden');
+    return isRevealed(this.overlay);
   }
 
   /** Marks the current choices and greys out anything the factory has not unlocked yet. */
@@ -157,18 +205,21 @@ export class SettingsPanel {
       const unlocked = isCosmeticUnlocked(requires, progress);
       button.disabled = !unlocked;
       button.classList.toggle('active', unlocked && this.settings.cosmetics[key] === id);
-      button.title = unlocked ? '' : progress ? `Unlocks at ${describeRequirement(requires)}` : `Unlocks in play, at ${describeRequirement(requires)}`;
+      attachTooltip(button, () =>
+        unlocked ? null : { title: 'Locked', body: 'Unlocks ' + (progress ? '' : 'in play, ') + 'at ' + describeRequirement(requires) + '.' },
+      );
     }
   }
 
-  open(): void {
+  open(anchor?: HTMLElement | null): void {
     this.refreshCosmetics();
-    this.overlay.classList.remove('hidden');
+    reveal(this.overlay, anchor);
     this.actions.onOpenChange?.(true);
   }
 
   close(): void {
-    this.overlay.classList.add('hidden');
+    if (!this.isOpen) return;
+    conceal(this.overlay);
     this.actions.onOpenChange?.(false);
   }
 }

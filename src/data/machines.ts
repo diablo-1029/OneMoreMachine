@@ -185,3 +185,15 @@ export const BUILD_ORDER = [
   'storage',
   'wind_turbine',
 ] as const;
+
+/**
+ * Once a factory has more tools than fit comfortably in one row, the toolbar shows one of
+ * these groups at a time. Every entry of BUILD_ORDER belongs to exactly one group.
+ */
+export const TOOL_GROUPS = [
+  { id: 'machines', name: 'Machines', tools: ['miner', 'furnace', 'assembler', 'fabricator', 'seller', 'wind_turbine'] },
+  { id: 'logistics', name: 'Logistics', tools: ['conveyor', 'splitter', 'merger', 'bridge', 'storage'] },
+] as const;
+
+/** With this many tools or fewer unlocked, they are all shown in one row and there are no groups. */
+export const UNGROUPED_TOOL_LIMIT = 6;

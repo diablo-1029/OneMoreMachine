@@ -3,7 +3,8 @@ import type { AudioManager, SoundId } from '../audio/AudioManager';
 import { BlueprintLibrary } from '../core/blueprints/BlueprintLibrary';
 import { describeContract } from '../core/contracts/Contracts';
 import { formatMoney } from '../core/economy/Currency';
-import { AUTOSAVE_INTERVAL, TICK_RATE } from '../core/game/Constants';
+import { getMachineDef } from '../core/factory/MachineRegistry';
+import { AUTOSAVE_INTERVAL, DEFAULT_GRID_SIZE, TICK_RATE } from '../core/game/Constants';
 import { applyOfflineProgress, mergeReports, OFFLINE, type OfflineReport } from '../core/game/OfflineProgress';
 import type { GameState } from '../core/game/GameState';
 import { createPrestigeGame } from '../core/game/Prestige';
@@ -13,6 +14,7 @@ import { currentHint } from '../core/game/Tutorial';
 import type { SaveManager } from '../core/save/SaveManager';
 import type { GameSettings } from '../core/save/SaveSchema';
 import type { BeltStyle, CosmeticProgress } from '../data/cosmetics';
+import { EXPANSION_STEPS } from '../data/expansion';
 import { InputManager } from '../input/InputManager';
 import { PlacementController } from '../input/PlacementController';
 import { BottleneckOverlay } from '../rendering/BottleneckOverlay';
@@ -34,12 +36,17 @@ import { BlueprintsPanel } from '../ui/BlueprintsPanel';
 import { BuildToolbar } from '../ui/BuildToolbar';
 import { ContractsPanel } from '../ui/ContractsPanel';
 import { DebugPanel } from '../ui/DebugPanel';
+import { EfficiencyLabels } from '../ui/EfficiencyLabels';
 import { ExpansionPanel } from '../ui/ExpansionPanel';
 import { el } from '../ui/dom';
-import { HUD } from '../ui/HUD';
+import { HoverCard } from '../ui/HoverCard';
+import { HUD, type HudPanel } from '../ui/HUD';
+import { hudVisibility } from '../ui/hudVisibility';
+import { KeyHints } from '../ui/KeyHints';
 import { MachinePanel } from '../ui/MachinePanel';
 import { NotificationSystem } from '../ui/NotificationSystem';
 import { OfflineReportPanel } from '../ui/OfflineReportPanel';
+import { uiScale } from '../ui/preferences';
 import { PrestigePanel } from '../ui/PrestigePanel';
 import { ResearchPanel } from '../ui/ResearchPanel';
 import { SettingsPanel } from '../ui/SettingsPanel';
@@ -104,6 +111,9 @@ export class GameSession {
   private readonly offlinePanel: OfflineReportPanel;
   private readonly achievementsPanel: AchievementsPanel;
   private readonly blueprintsPanel: BlueprintsPanel;
+  private readonly blueprints: BlueprintLibrary;
+  private readonly hoverCard: HoverCard;
+  private readonly efficiencyLabels: EfficiencyLabels;
   private readonly prestigePanel: PrestigePanel;
   /** True once this factory has been sold; from then on it must never be saved again. */
   private retired = false;
@@ -143,6 +153,7 @@ export class GameSession {
     this.markers = new RecipeMarkerRenderer(scene);
     this.overlay = new BottleneckOverlay(scene);
     this.costLabel = el('div', { class: 'ghost-cost hidden' });
+    this.efficiencyLabels = new EfficiencyLabels(ctx.uiRoot);
     ctx.uiRoot.append(this.costLabel);
     const preview = new PlacementRenderer(scene);
     this.floatingText = new FloatingText(ctx.uiRoot);
@@ -160,10 +171,12 @@ export class GameSession {
       togglePause: () => this.togglePause(),
       toggleDebug: () => this.debugPanel?.toggle(),
       toggleBottleneckView: () => this.toggleBottleneckView(),
-      toggleResearch: () => this.researchPanel.toggle(),
-      toggleContracts: () => this.toggleDropdown(this.contractsPanel),
-      toggleAchievements: () => this.achievementsPanel.toggle(),
-      toggleBlueprints: () => this.toggleDropdown(this.blueprintsPanel),
+      toggleResearch: () => this.researchPanel.toggle(this.hud.anchor('research')),
+      toggleContracts: () => this.toggleDropdown(this.contractsPanel, 'contracts'),
+      toggleAchievements: () => this.achievementsPanel.toggle(this.hud.anchor('achievements')),
+      toggleBlueprints: () => this.toggleDropdown(this.blueprintsPanel, 'blueprints'),
+      pickTool: (index) => this.toolbar.pick(index),
+      cycleToolGroup: () => this.toolbar.cycleGroup(),
     });
 
     const click = () => ctx.audio.play('click');
@@ -175,11 +188,11 @@ export class GameSession {
       },
       openSettings: () => {
         click();
-        this.settingsPanel.open();
+        this.settingsPanel.open(this.hud.anchor('settings'));
       },
       toggleStats: () => {
         click();
-        this.toggleDropdown(this.stats);
+        this.toggleDropdown(this.stats, 'production');
       },
       toggleBottleneckView: () => {
         click();
@@ -187,27 +200,27 @@ export class GameSession {
       },
       openResearch: () => {
         click();
-        this.researchPanel.toggle();
+        this.researchPanel.toggle(this.hud.anchor('research'));
       },
       toggleExpansion: () => {
         click();
-        this.toggleDropdown(this.expansionPanel);
+        this.toggleDropdown(this.expansionPanel, 'floor');
       },
       toggleContracts: () => {
         click();
-        this.toggleDropdown(this.contractsPanel);
+        this.toggleDropdown(this.contractsPanel, 'contracts');
       },
       toggleAchievements: () => {
         click();
-        this.achievementsPanel.toggle();
+        this.achievementsPanel.toggle(this.hud.anchor('achievements'));
       },
       toggleBlueprints: () => {
         click();
-        this.toggleDropdown(this.blueprintsPanel);
+        this.toggleDropdown(this.blueprintsPanel, 'blueprints');
       },
       openPrestige: () => {
         click();
-        this.prestigePanel.open();
+        this.prestigePanel.open(this.hud.anchor('prestige'));
       },
     });
     this.prestigePanel = new PrestigePanel(
@@ -222,7 +235,8 @@ export class GameSession {
     } catch {
       // Storage blocked: blueprints still work, they just will not outlive the page.
     }
-    this.blueprintsPanel = new BlueprintsPanel(ctx.uiRoot, new BlueprintLibrary(storage), this.placement, click);
+    this.blueprints = new BlueprintLibrary(storage);
+    this.blueprintsPanel = new BlueprintsPanel(ctx.uiRoot, this.blueprints, this.placement, click);
     this.achievementsPanel = new AchievementsPanel(ctx.uiRoot, this.sim, (open) => this.input.setEnabled(!open));
     this.contractsPanel = new ContractsPanel(ctx.uiRoot, (id) => {
       click();
@@ -239,6 +253,8 @@ export class GameSession {
     );
     this.stats = new StatsPanel(ctx.uiRoot, (machineId) => this.focusMachine(machineId));
     this.toolbar = new BuildToolbar(ctx.uiRoot, this.placement, click);
+    new KeyHints(ctx.uiRoot, this.placement);
+    this.hoverCard = new HoverCard(ctx.uiRoot, this.sim);
     this.machinePanel = new MachinePanel(ctx.uiRoot, this.sim, this.placement, click);
     this.settingsPanel = new SettingsPanel(ctx.uiRoot, ctx.settings, {
       onChange: (settings) => {
@@ -357,11 +373,11 @@ export class GameSession {
   }
 
   /** The top-left drop-downs share one spot, so opening one closes the others. */
-  private toggleDropdown(panel: { toggle: () => void; hide: () => void }): void {
+  private toggleDropdown(panel: { toggle: (anchor?: HTMLElement | null) => void; hide: () => void }, name: HudPanel): void {
     for (const other of [this.stats, this.expansionPanel, this.contractsPanel, this.blueprintsPanel]) {
       if (other !== panel) other.hide();
     }
-    panel.toggle();
+    panel.toggle(this.hud.anchor(name));
     this.updateUi();
   }
 
@@ -430,8 +446,9 @@ export class GameSession {
     if (!hover) return;
     const { renderer, camera } = this.ctx;
     this.center.set(hover.x, 0, hover.z).project(camera.camera);
-    const x = (this.center.x * 0.5 + 0.5) * renderer.width;
-    const y = (-this.center.y * 0.5 + 0.5) * renderer.height;
+    // Positions inside the UI layer are in its own pixels, which a scaled interface stretches.
+    const x = ((this.center.x * 0.5 + 0.5) * renderer.width) / uiScale();
+    const y = ((-this.center.y * 0.5 + 0.5) * renderer.height) / uiScale();
     this.costLabel.style.transform = `translate(-50%, 0) translate(${x.toFixed(1)}px, ${(y + 34).toFixed(1)}px)`;
     this.costLabel.textContent = formatMoney(hover.cost);
     this.costLabel.classList.toggle('unaffordable', !hover.affordable);
@@ -503,7 +520,26 @@ export class GameSession {
     this.markers.update(factory, this.realTime);
     this.overlay.update(factory, this.sim.metrics, realDt);
     this.updateCostLabel();
-    this.floatingText.update(realDt, this.ctx.camera.camera, this.ctx.renderer.width, this.ctx.renderer.height);
+    const { renderer, camera } = this.ctx;
+    this.floatingText.update(realDt, camera.camera, renderer.width / uiScale(), renderer.height / uiScale());
+    this.hoverCard.update(
+      realDt,
+      this.placement.currentHover,
+      this.placement.currentSelection,
+      camera.camera,
+      renderer.width,
+      renderer.height,
+    );
+    this.efficiencyLabels.update(
+      this.overlay.isEnabled,
+      factory,
+      this.sim.metrics,
+      camera.camera,
+      camera.zoomScale,
+      renderer.width,
+      renderer.height,
+    );
+    this.hud.animate(realDt);
     this.ctx.audio.update(factory.conveyors.size, this.ticks.speed !== 0);
 
     this.updateSaving(realDt);
@@ -537,8 +573,63 @@ export class GameSession {
     this.updateSaving(realDt);
   }
 
+  /** The gauge around the selected machine reads the share of its time it has spent working. */
+  private updateGauge(): void {
+    const selection = this.placement.currentSelection;
+    const machine = selection?.kind === 'machine' ? this.sim.state.factory.machines.get(selection.id) : undefined;
+    if (!machine || getMachineDef(machine.type).behavior !== 'crafter') return this.selection.setEfficiency(null);
+    const shares = this.sim.metrics.shares(machine.id);
+    this.selection.setEfficiency(shares.observed >= 3 ? shares.working : null);
+  }
+
+  /** Lets the top bar bring in whatever the factory has grown into, and mark the open panel. */
+  private updateHud(): void {
+    const { state } = this.sim;
+    let turbines = 0;
+    for (const machine of state.factory.machines.values()) {
+      if (getMachineDef(machine.type).behavior === 'generator') turbines++;
+    }
+    this.hud.setVisibility(
+      hudVisibility({
+        machines: state.factory.machines.size,
+        totalEarned: state.economy.totalEarned,
+        itemsSold: Object.values(state.stats.sold).reduce((sum, count) => sum + count, 0),
+        contractsCompleted: state.contracts.completed,
+        research: state.research,
+        gridSize: state.factory.grid.width,
+        startingGridSize: DEFAULT_GRID_SIZE,
+        firstExpansionCost: EXPANSION_STEPS[0].cost,
+        hasClipboard: this.placement.clipboard !== null,
+        savedBlueprints: this.blueprints.all.length,
+        achievements: state.achievements.length,
+        powerDemand: this.sim.power.demand,
+        powerSupply: this.sim.power.supply,
+        turbines,
+        stars: state.prestige.stars,
+        timesSold: state.prestige.count,
+      }),
+    );
+    this.hud.setOpenPanel(
+      this.stats.visible
+        ? 'production'
+        : this.contractsPanel.visible
+          ? 'contracts'
+          : this.expansionPanel.visible
+            ? 'floor'
+            : this.blueprintsPanel.visible
+              ? 'blueprints'
+              : this.researchPanel.isOpen
+                ? 'research'
+                : this.achievementsPanel.isOpen
+                  ? 'achievements'
+                  : null,
+    );
+  }
+
   private updateUi(): void {
     const { state } = this.sim;
+    this.updateHud();
+    this.updateGauge();
     this.hud.update(state);
     this.hud.setPower(this.sim.power.demand, this.sim.power.supply);
     this.toolbar.update(state);

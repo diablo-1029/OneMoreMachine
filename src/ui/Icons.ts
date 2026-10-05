@@ -71,6 +71,9 @@ export const ICONS: Record<string, string> = {
       '<path d="M16 14V3.500l3 4.500zM16 14l-9.300 5 5.600.300zM16 14l9.300 5-2-5.300z" fill="#eef1f5"/>' +
       '<circle cx="16" cy="14" r="2.400" fill="#ffb547"/>',
   ),
+  stats: svg(
+    '<path d="M6 26V17M13 26V9M20 26v-7M27 26V13" stroke="currentColor" stroke-width="3.4"/>',
+  ),
   power: svg('<path d="M18 3L7 18h7l-2 11 13-16h-8z" fill="currentColor"/>'),
   bottleneck: svg(
     '<path d="M6 22a10 10 0 0120 0" stroke="currentColor" stroke-width="2.6"/>' +

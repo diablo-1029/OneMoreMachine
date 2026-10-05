@@ -1,4 +1,6 @@
-type Child = Node | string | null | undefined | false;
+import { attachTooltip } from './Tooltip';
+
+type Child =Node | string | null | undefined | false;
 
 interface Props {
   class?: string;
@@ -19,7 +21,8 @@ export function el<K extends keyof HTMLElementTagNameMap>(
   if (props.class) node.className = props.class;
   if (props.text !== undefined) node.textContent = props.text;
   if (props.html !== undefined) node.innerHTML = props.html;
-  if (props.title) node.title = props.title;
+  // Shown by the game's own tooltip rather than the browser's, which is slow and unstyled.
+  if (props.title) attachTooltip(node, props.title);
   if (props.onClick) (node as HTMLElement).addEventListener('click', props.onClick);
   if (props.attrs) {
     for (const [name, value] of Object.entries(props.attrs)) node.setAttribute(name, value);

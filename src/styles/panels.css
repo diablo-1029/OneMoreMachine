@@ -10,6 +10,67 @@
   box-shadow: var(--shadow);
 }
 
+/* Long-form reading sits on the more solid surface. */
+.modal {
+  background: var(--panel-strong);
+}
+
+.modal:focus {
+  outline: none;
+}
+
+/*
+ * Opening and closing. reveal.ts sets transform-origin to the control that opened the panel,
+ * so it grows out of that control and shrinks back into it.
+ */
+.revealing:not(.overlay),
+.overlay.revealing > .modal {
+  animation: pop-in var(--dur-med) var(--ease-out);
+}
+
+.closing:not(.overlay),
+.overlay.closing > .modal {
+  animation: pop-out var(--dur-fast) ease-in forwards;
+}
+
+.overlay.revealing {
+  animation: fade-in var(--dur-med) ease-out;
+}
+
+.overlay.closing {
+  animation: fade-out var(--dur-fast) ease-in forwards;
+}
+
+.closing {
+  pointer-events: none !important;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes pop-out {
+  to {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
 .panel-header {
   display: flex;
   align-items: center;
@@ -138,8 +199,12 @@
   white-space: nowrap;
 }
 
-.recipe-choice:hover {
+.recipe-choice:hover:not(:disabled) {
   background: var(--panel-hover);
+}
+
+.recipe-choice:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
 .recipe-choice.active {
@@ -287,8 +352,10 @@
   top: calc(var(--topbar-bottom, 58px) + 10px);
   left: 14px;
   width: 310px;
-  max-height: calc(100vh - 190px);
+  max-height: calc(100% - var(--topbar-bottom, 58px) - var(--toolbar-height, 86px) - 46px);
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -317,8 +384,9 @@
   display: grid;
   place-items: center;
   padding: 16px;
-  background: rgba(14, 19, 27, 0.55);
-  backdrop-filter: blur(3px);
+  background: rgba(14, 19, 27, 0.5);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
   z-index: 20;
 }
 
@@ -454,7 +522,7 @@ kbd {
   top: calc(var(--topbar-bottom, 58px) + 10px);
   left: 14px;
   width: 320px;
-  max-height: calc(100vh - 190px);
+  max-height: calc(100% - var(--topbar-bottom, 58px) - var(--toolbar-height, 86px) - 46px);
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
@@ -653,7 +721,7 @@ kbd {
   top: calc(var(--topbar-bottom, 58px) + 10px);
   left: 14px;
   width: 310px;
-  max-height: calc(100vh - 190px);
+  max-height: calc(100% - var(--topbar-bottom, 58px) - var(--toolbar-height, 86px) - 46px);
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.25) transparent;

@@ -4,6 +4,7 @@ import { analyzeBottlenecks, type BottleneckFinding } from '../core/stats/Bottle
 import type { FactoryMetrics } from '../core/stats/FactoryMetrics';
 import { RESOURCE_DEFINITIONS } from '../data/resources';
 import { el, setText } from './dom';
+import { conceal, isRevealed, reveal } from './reveal';
 
 const MAX_FINDINGS = 3;
 
@@ -53,17 +54,19 @@ export class StatsPanel {
     root.append(this.panel);
   }
 
-  toggle(): void {
-    this.panel.classList.toggle('hidden');
+  /** Opens or closes the panel; given the button pressed, it opens out of that button. */
+  toggle(anchor?: HTMLElement | null): void {
+    if (this.visible) return this.hide();
+    reveal(this.panel, anchor);
     this.findingsKey = '';
   }
 
   hide(): void {
-    this.panel.classList.add('hidden');
+    conceal(this.panel);
   }
 
   get visible(): boolean {
-    return !this.panel.classList.contains('hidden');
+    return isRevealed(this.panel);
   }
 
   update(state: GameState, metrics: FactoryMetrics): void {

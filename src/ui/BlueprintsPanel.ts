@@ -4,6 +4,7 @@ import { formatMoney } from '../core/economy/Currency';
 import type { GameState } from '../core/game/GameState';
 import type { PlacementController } from '../input/PlacementController';
 import { el, setText } from './dom';
+import { conceal, isRevealed, reveal } from './reveal';
 
 /**
  * Drop-down for the blueprint library: save whatever was last copied, then place, rename
@@ -46,13 +47,18 @@ export class BlueprintsPanel {
     root.append(this.panel);
   }
 
-  toggle(): void {
-    this.panel.classList.toggle('hidden');
+  toggle(anchor?: HTMLElement | null): void {
+    if (this.visible) return this.hide();
+    reveal(this.panel, anchor);
     this.shownKey = '';
   }
 
   hide(): void {
-    this.panel.classList.add('hidden');
+    conceal(this.panel);
+  }
+
+  get visible(): boolean {
+    return isRevealed(this.panel);
   }
 
   private row(saved: SavedBlueprint): HTMLElement {
@@ -110,7 +116,7 @@ export class BlueprintsPanel {
   }
 
   update(state: GameState): void {
-    if (this.panel.classList.contains('hidden')) return;
+    if (!this.visible) return;
     const clipboard = this.placement.clipboard;
     // Rebuild the list only when it changed, so a name being typed is not wiped out.
     const key = this.library.all.map((b) => b.id).join(',');

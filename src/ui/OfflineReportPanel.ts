@@ -2,6 +2,7 @@ import { formatMoney } from '../core/economy/Currency';
 import { formatDuration, type OfflineReport } from '../core/game/OfflineProgress';
 import { getResource, RESOURCE_DEFINITIONS } from '../data/resources';
 import { el } from './dom';
+import { conceal, isRevealed, reveal } from './reveal';
 
 /** "Welcome back" summary of what the factory did while the game was closed or asleep. */
 export class OfflineReportPanel {
@@ -34,7 +35,7 @@ export class OfflineReportPanel {
   }
 
   get isOpen(): boolean {
-    return !this.overlay.classList.contains('hidden');
+    return isRevealed(this.overlay);
   }
 
   show(report: OfflineReport): void {
@@ -67,12 +68,13 @@ export class OfflineReportPanel {
         : null,
     ];
     this.body.replaceChildren(...parts.filter((part): part is HTMLElement => part !== null));
-    this.overlay.classList.remove('hidden');
+    reveal(this.overlay);
     this.onOpenChange(true);
   }
 
   close(): void {
-    this.overlay.classList.add('hidden');
+    if (!this.isOpen) return;
+    conceal(this.overlay);
     this.onOpenChange(false);
   }
 }

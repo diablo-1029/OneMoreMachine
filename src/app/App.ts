@@ -12,6 +12,7 @@ import { setWorldGrid } from '../rendering/WorldMapping';
 import { resolveCosmetics } from '../data/cosmetics';
 import { DEFAULT_ENVIRONMENT, getEnvironment } from '../data/environments';
 import { el } from '../ui/dom';
+import { reducedMotion, setMotionPreference, setUiScale } from '../ui/preferences';
 import { MainMenu } from '../ui/MainMenu';
 import { SettingsPanel } from '../ui/SettingsPanel';
 import { GameLoop } from './GameLoop';
@@ -65,6 +66,11 @@ export class App {
     this.applySettings(this.settings);
     this.renderer.onResize((width, height) => this.camera.setAspect(width / height));
 
+    // "Match system" follows the operating system setting if it changes while the game is open.
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').addEventListener('change', () => {
+      setMotionPreference(this.settings.reduceMotion);
+    });
+
     // Audio may only start after a user gesture.
     const unlock = () => this.audio.unlock();
     window.addEventListener('pointerdown', unlock);
@@ -116,6 +122,8 @@ export class App {
     this.grid.setStyle(look.floor);
     this.sceneManager.lighting.setStyle(look.light);
     this.session?.setBeltStyle(look.belt);
+    setUiScale(this.uiRoot, settings.uiScale);
+    setMotionPreference(settings.reduceMotion);
     this.saveManager.saveSettings(settings);
   }
 
@@ -177,7 +185,8 @@ export class App {
   }
 
   private frame(realDt: number): void {
-    if (!this.session) this.camera.drift(realDt);
+    // The slow turn behind the menu is decoration, so it is the first thing reduced motion stops.
+    if (!this.session && !reducedMotion()) this.camera.drift(realDt);
     this.camera.update(realDt);
     this.session?.frame(realDt);
     this.renderer.render(this.sceneManager.scene, this.camera.camera);

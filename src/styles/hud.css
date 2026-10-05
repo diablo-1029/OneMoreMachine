@@ -8,30 +8,85 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: var(--space-2);
   pointer-events: none !important;
 }
 
 .topbar-group {
   display: flex;
-  /* The left group has many buttons; on a narrow window it wraps rather than running under the right one. */
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   pointer-events: auto;
 }
 
-.pill {
+/* Status and navigation share the left; on a narrow window the navigation drops to a second row. */
+.topbar-group:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.topbar-group:last-child {
+  flex: none;
+}
+
+.pill,
+.statusbar,
+.nav {
   display: flex;
   align-items: center;
-  gap: 8px;
   height: 44px;
-  padding: 0 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--panel);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
+}
+
+.pill {
+  gap: 8px;
+  padding: 0 16px;
   font-weight: 800;
   font-size: 17px;
   font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------------- status */
+
+/* What the factory has: one quiet strip of readouts rather than a row of separate buttons. */
+.statusbar {
+  padding: 0 4px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  font-size: 14.5px;
+  white-space: nowrap;
+}
+
+/* A hairline between neighbours, drawn inside the gap so hover shapes stay round. */
+.status-item + .status-item {
+  margin-left: 1px;
+  box-shadow: -1px 0 0 var(--border);
+}
+
+button.status-item {
+  transition: background var(--dur-fast);
+}
+
+button.status-item:hover {
+  background: var(--panel-hover);
+  box-shadow: none;
+}
+
+.status-item.money {
+  font-size: 17px;
+  padding-left: 10px;
 }
 
 .coin {
@@ -44,7 +99,7 @@
 
 .money-value {
   display: inline-block;
-  min-width: 56px;
+  min-width: 52px;
 }
 
 .money-value.bump {
@@ -53,59 +108,156 @@
 
 @keyframes bump {
   30% {
-    transform: scale(1.14);
+    transform: scale(1.1);
     color: #ffe27a;
   }
 }
 
-.pill.income {
+.status-item.income {
   color: var(--good);
-  font-size: 15px;
 }
 
-.pill.power {
-  gap: 4px;
-  padding: 0 14px 0 10px;
-  font-size: 15px;
+.status-item.power {
+  gap: 2px;
+  padding-left: 8px;
   color: #ffd76a;
 }
 
-.power-icon {
+.status-item.prestige-button {
+  gap: 2px;
+  padding-left: 8px;
+  color: #ffcf40;
+}
+
+.status-icon {
   display: grid;
 }
 
-.power-icon svg {
+.status-icon svg {
   width: 18px;
   height: 18px;
 }
 
-.pill.power.short {
+.status-item.power.short {
   color: var(--bad);
-  border-color: rgba(248, 113, 113, 0.6);
   animation: power-short 1.4s ease-in-out infinite;
 }
 
 @keyframes power-short {
   50% {
-    background: rgba(90, 30, 34, 0.95);
+    background: rgba(248, 113, 113, 0.22);
   }
 }
 
-.pill.prestige-button {
-  gap: 4px;
-  padding: 0 14px 0 10px;
-  font-size: 15px;
-  color: #ffcf40;
+/* ------------------------------------------------------------- navigation */
+
+/* Where the factory's panels live: icon and word when there is room, icon alone when not. */
+.nav {
+  gap: 2px;
+  padding: 0 4px;
 }
 
-.pill.prestige-button:hover {
-  background: rgba(40, 47, 60, 0.96);
+.nav-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px 0 9px;
+  border-radius: var(--radius-pill);
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition:
+    background var(--dur-fast),
+    color var(--dur-fast),
+    transform var(--dur-fast);
 }
 
-.pill.income:hover,
-.pill.icon-button:hover {
-  background: rgba(40, 47, 60, 0.96);
+.nav-icon {
+  display: grid;
 }
+
+.nav-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.nav-button:hover {
+  background: var(--panel-hover);
+  color: var(--text);
+}
+
+.nav-button:active,
+.speed-button:active,
+.pill.icon-button:active {
+  transform: scale(0.94);
+}
+
+.nav-button.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.nav-divider {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: var(--border);
+}
+
+/* Short of room, only the open panel keeps its name. */
+.topbar.compact .nav-button:not(.active) {
+  padding: 0 8px;
+}
+
+.topbar.compact .nav-button:not(.active) .nav-label {
+  display: none;
+}
+
+/* "Something here needs you" marker, e.g. affordable research. */
+.nav-button.has-dot:not(.active)::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 24px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px #232936;
+}
+
+/* A control that has just appeared, because the factory grew into it. */
+.arrived {
+  animation:
+    arrive 0.45s var(--ease-out),
+    arrive-glow 2.6s ease-out;
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+
+@keyframes arrive-glow {
+  0%,
+  55% {
+    box-shadow:
+      0 0 0 2px var(--accent),
+      0 0 16px rgba(255, 181, 71, 0.6);
+  }
+  100% {
+    box-shadow:
+      0 0 0 2px rgba(255, 181, 71, 0),
+      0 0 16px rgba(255, 181, 71, 0);
+  }
+}
+
+/* ----------------------------------------------------- speed and settings */
 
 .pill.speed {
   padding: 0 5px;
@@ -117,10 +269,13 @@
   place-items: center;
   min-width: 38px;
   height: 34px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-weight: 800;
   font-size: 14px;
   color: var(--muted);
+  transition:
+    background var(--dur-fast),
+    transform var(--dur-fast);
 }
 
 .speed-button svg {
@@ -143,6 +298,9 @@
   padding: 0;
   justify-content: center;
   color: var(--muted);
+  transition:
+    color var(--dur-fast),
+    transform var(--dur-fast);
 }
 
 .pill.icon-button svg {
@@ -150,28 +308,11 @@
   height: 22px;
 }
 
-.pill.icon-button {
-  position: relative;
+.pill.icon-button:hover {
+  color: var(--text);
 }
 
-/* "Something here needs you" marker, e.g. affordable research. */
-.pill.icon-button.has-dot::after {
-  content: '';
-  position: absolute;
-  top: 7px;
-  right: 7px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 2px var(--panel);
-}
-
-.pill.icon-button.active {
-  background: var(--accent);
-  color: var(--accent-ink);
-  border-color: transparent;
-}
+/* --------------------------------------------------------- in-world labels */
 
 /* Price tag that follows the build ghost. Positioned by GameSession via transform. */
 .ghost-cost {
@@ -179,8 +320,8 @@
   left: 0;
   top: 0;
   padding: 2px 9px;
-  border-radius: 999px;
-  background: var(--panel);
+  border-radius: var(--radius-pill);
+  background: var(--panel-strong);
   border: 1px solid var(--border);
   font-size: 13px;
   font-weight: 800;
@@ -194,19 +335,93 @@
   color: var(--bad);
 }
 
-/* Speed and settings stay together on one line; the long left group does the wrapping. */
-.topbar {
-  gap: 8px;
+/* Card beside the machine the cursor is resting on. Positioned by HoverCard via transform. */
+.hover-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 150px;
+  max-width: 250px;
+  padding: 8px 11px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--panel-strong);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-low);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  pointer-events: none !important;
+  will-change: transform;
 }
 
-.topbar-group:first-child {
-  flex: 1 1 auto;
-  min-width: 0;
+.hover-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
-.topbar-group:last-child {
-  flex: none;
-  flex-wrap: nowrap;
+.hover-card-name {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.hover-card .status {
+  padding: 1px 8px;
+  font-size: 11.5px;
+}
+
+.hover-card-makes {
+  color: var(--muted);
+}
+
+.hover-card-busy[data-level='good'] {
+  color: var(--good);
+}
+
+.hover-card-busy[data-level='fair'] {
+  color: var(--accent);
+}
+
+.hover-card-busy[data-level='poor'] {
+  color: var(--bad);
+}
+
+/* Percentages under each machine in the bottleneck view. Positioned by EfficiencyLabels. */
+.efficiency-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none !important;
+}
+
+.efficiency-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: none;
+  padding: 0 7px;
+  border-radius: var(--radius-pill);
+  background: rgba(16, 20, 28, 0.82);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.efficiency-label[data-level='good'] {
+  color: var(--good);
+}
+
+.efficiency-label[data-level='fair'] {
+  color: var(--accent);
+}
+
+.efficiency-label[data-level='poor'] {
+  color: var(--bad);
 }
 
 /* ------------------------------------------------------------ tutorial hint */
@@ -219,9 +434,9 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  max-width: min(560px, calc(100vw - 28px));
+  max-width: min(560px, calc(100% - 28px));
   padding: 10px 16px 10px 10px;
-  border-radius: 999px;
+  border-radius: 22px;
   background: var(--panel);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
@@ -229,13 +444,13 @@
   font-weight: 600;
   line-height: 1.3;
   pointer-events: none !important;
-  animation: hint-in 0.35s ease-out;
+  animation: hint-in 0.35s var(--ease-out);
 }
 
 .hint-badge {
   flex: none;
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--accent-ink);
   font-size: 12px;
@@ -265,14 +480,55 @@
   align-items: stretch;
   gap: 6px;
   padding: 7px;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   background: var(--panel);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
   /* On narrow windows the tools wrap onto a second row, so none are ever out of reach. */
-  max-width: calc(100vw - 16px);
+  max-width: calc(100% - 16px);
   flex-wrap: wrap;
   justify-content: center;
+}
+
+.toolbar-tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* The two groups of tools, stacked at the left end of the bar. */
+.toolbar-tabs {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding-right: 3px;
+}
+
+.toolbar-tab {
+  flex: 1;
+  min-width: 84px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 800;
+  text-align: left;
+  transition:
+    background var(--dur-fast),
+    color var(--dur-fast);
+}
+
+.toolbar-tab:hover {
+  background: var(--panel-raised);
+  color: var(--text);
+}
+
+.toolbar-tab.active {
+  background: var(--panel-hover);
+  color: var(--text);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .toolbar-divider {
@@ -290,18 +546,22 @@
   width: 74px;
   flex: none;
   padding: 9px 4px 7px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   border: 1.5px solid transparent;
   background: var(--panel-raised);
   transition:
-    background 0.12s,
-    transform 0.08s,
-    border-color 0.12s;
+    background var(--dur-fast),
+    transform var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast);
 }
 
 .tool:hover {
   background: var(--panel-hover);
   transform: translateY(-2px);
+}
+
+.tool:active {
+  transform: translateY(0) scale(0.96);
 }
 
 .tool.active {
@@ -344,10 +604,7 @@
   color: var(--bad);
 }
 
-.tool-delete .tool-cost {
-  color: var(--muted);
-}
-
+.tool-delete .tool-cost,
 .tool-copy .tool-cost {
   color: var(--muted);
 }
@@ -362,11 +619,47 @@
   background: rgba(248, 113, 113, 0.16);
 }
 
+/* -------------------------------------------------------------- key hints */
+
+/* The keys that matter for what the player is doing right now, just above the toolbar. */
+.keyhints {
+  position: absolute;
+  bottom: calc(var(--toolbar-height, 86px) + 26px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 14px;
+  padding: 5px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-low);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none !important;
+  animation: keyhints-in var(--dur-med) var(--ease-out);
+}
+
+.keyhint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@keyframes keyhints-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+}
+
 /* ----------------------------------------------------------------- toasts */
 
 .toasts {
   position: absolute;
-  bottom: 132px;
+  bottom: calc(var(--toolbar-height, 86px) + 66px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -378,13 +671,13 @@
 
 .toast {
   padding: 8px 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--panel);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
   font-size: 14px;
   font-weight: 700;
-  animation: toast-in 0.18s ease-out;
+  animation: toast-in 0.18s var(--ease-out);
   transition:
     opacity 0.25s,
     transform 0.25s;
@@ -402,23 +695,84 @@
   }
 }
 
-/* Below this width the top bar takes two rows, so the hint sits under both. */
-@media (max-width: 980px) {
-  .hint {
-    top: calc(var(--topbar-bottom, 58px) + 10px);
+/* ---------------------------------------------------------------- tooltip */
+
+/* Positioned by Tooltip via transform. */
+.tooltip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-width: 260px;
+  padding: 7px 11px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--panel-strong);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-low);
+  pointer-events: none !important;
+  animation: tooltip-in var(--dur-fast) ease-out;
+}
+
+.tooltip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tooltip-title {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.tooltip-meta {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip-body {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
   }
 }
 
-@media (max-width: 760px) {
-  .tool {
-    width: 58px;
-    padding: 8px 2px 6px;
-  }
-  .tool-name {
-    font-size: 11px;
-  }
-  .hint {
-    top: calc(var(--topbar-bottom, 58px) + 10px);
-    border-radius: 16px;
-  }
+/* A narrow interface: smaller tools, and the groups go above them instead of beside. */
+.toolbar.narrow .tool {
+  width: 58px;
+  padding: 8px 2px 6px;
+}
+
+.toolbar.narrow .tool-name {
+  font-size: 11px;
+}
+
+.toolbar.narrow .toolbar-tabs {
+  flex-direction: row;
+  flex-basis: 100%;
+  justify-content: center;
+  padding: 0 0 2px;
+}
+
+.toolbar.narrow .toolbar-tab {
+  flex: none;
+  min-width: 0;
+  padding: 5px 14px;
+  text-align: center;
+}
+
+.toolbar.narrow .toolbar-tab.active {
+  box-shadow: inset 0 -3px 0 var(--accent);
 }

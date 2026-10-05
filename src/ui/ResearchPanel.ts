@@ -7,6 +7,7 @@ import { RESEARCH_NODES, type ResearchNode } from '../data/research';
 import { getResource } from '../data/resources';
 import { getUpgradeLevel } from '../data/upgrades';
 import { el, setText } from './dom';
+import { conceal, isRevealed, reveal } from './reveal';
 
 interface Card {
   node: ResearchNode;
@@ -92,16 +93,16 @@ export class ResearchPanel {
   }
 
   get isOpen(): boolean {
-    return !this.overlay.classList.contains('hidden');
+    return isRevealed(this.overlay);
   }
 
-  toggle(): void {
+  toggle(anchor?: HTMLElement | null): void {
     if (this.isOpen) this.close();
-    else this.open();
+    else this.open(anchor);
   }
 
-  open(): void {
-    this.overlay.classList.remove('hidden');
+  open(anchor?: HTMLElement | null): void {
+    reveal(this.overlay, anchor);
     this.justOpened = true;
     window.setTimeout(() => (this.justOpened = false), 0);
     this.update();
@@ -109,7 +110,7 @@ export class ResearchPanel {
   }
 
   close(): void {
-    this.overlay.classList.add('hidden');
+    conceal(this.overlay);
     this.onOpenChange(false);
   }
 

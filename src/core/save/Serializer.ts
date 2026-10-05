@@ -16,7 +16,7 @@ import { validatePlacement } from '../grid/PlacementValidator';
 import { hasRecipe } from '../recipes/RecipeRegistry';
 import { isResearchId } from '../research/Research';
 import { migrateSave } from './Migration';
-import { DEFAULT_SETTINGS, SaveError, type GameSettings, type SaveData } from './SaveSchema';
+import { DEFAULT_SETTINGS, SaveError, UI_SCALES, type GameSettings, type SaveData } from './SaveSchema';
 
 export function serializeGame(state: GameState, settings: GameSettings): SaveData {
   const { factory, economy } = state;
@@ -326,5 +326,9 @@ export function parseSettings(raw: unknown): GameSettings {
   if (typeof raw.sfx === 'boolean') settings.sfx = raw.sfx;
   if (typeof raw.music === 'boolean') settings.music = raw.music;
   if (typeof raw.shadows === 'boolean') settings.shadows = raw.shadows;
+  if (raw.reduceMotion === 'system' || raw.reduceMotion === 'on' || raw.reduceMotion === 'off') {
+    settings.reduceMotion = raw.reduceMotion;
+  }
+  if (UI_SCALES.some((scale) => scale === raw.uiScale)) settings.uiScale = raw.uiScale as number;
   return settings;
 }

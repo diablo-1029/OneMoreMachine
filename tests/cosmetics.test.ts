@@ -62,7 +62,14 @@ describe('resolving the look to draw', () => {
 describe('cosmetics in settings', () => {
   it('default when missing, so settings saved by an older version still load', () => {
     const settings = parseSettings({ masterVolume: 0.3, sfx: false, music: true, shadows: false });
-    expect(settings).toEqual({ masterVolume: 0.3, sfx: false, music: true, shadows: false, cosmetics: DEFAULT_COSMETICS });
+    expect(settings).toEqual({
+      ...DEFAULT_SETTINGS,
+      masterVolume: 0.3,
+      sfx: false,
+      music: true,
+      shadows: false,
+      cosmetics: DEFAULT_COSMETICS,
+    });
   });
 
   it('keep valid choices and drop unknown ones', () => {

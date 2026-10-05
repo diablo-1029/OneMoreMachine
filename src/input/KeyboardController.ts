@@ -1,4 +1,3 @@
-import { BUILD_ORDER } from '../data/machines';
 import type { CameraController } from '../rendering/CameraController';
 import type { PlacementController } from './PlacementController';
 
@@ -13,12 +12,16 @@ export interface KeyboardActions {
   toggleContracts: () => void;
   toggleAchievements: () => void;
   toggleBlueprints: () => void;
+  /** Picks the tool in this position on the toolbar, counting from 0. */
+  pickTool: (index: number) => void;
+  cycleToolGroup: () => void;
 }
 
 /**
  *   WASD / arrows  pan          Q / E   rotate view       Home    centre factory
  *   R              rotate       Esc     cancel            Delete  remove selection
  *   1-9, 0         build tools  X       delete tool       Space   pause
+ *   `              next group of build tools
  *   F              pick tool from what is under the cursor  B       bottleneck view
  *   T              research     C       contracts         G       achievements
  *   Ctrl+C         copy an area Ctrl+V  paste it          P       blueprints
@@ -59,9 +62,8 @@ export class KeyboardController {
 
     const digit = /^Digit([0-9])$/.exec(event.code);
     if (digit) {
-      // 1-9 pick the first nine tools; 0 picks the tenth.
-      const type = BUILD_ORDER[(Number(digit[1]) + 9) % 10];
-      if (type) this.placement.toggleBuild(type);
+      // 1-9 pick the first nine tools on the bar; 0 picks the tenth.
+      this.actions.pickTool((Number(digit[1]) + 9) % 10);
       return;
     }
 
@@ -92,6 +94,9 @@ export class KeyboardController {
         break;
       case 'KeyG':
         this.actions.toggleAchievements();
+        break;
+      case 'Backquote':
+        this.actions.cycleToolGroup();
         break;
       case 'KeyP':
         this.actions.toggleBlueprints();

@@ -3,6 +3,7 @@ import type { GameState } from '../core/game/GameState';
 import { getEnvironment } from '../data/environments';
 import type { ExpansionStep } from '../data/expansion';
 import { el, setText } from './dom';
+import { conceal, isRevealed, reveal } from './reveal';
 
 /** Drop-down for buying a larger factory floor. */
 export class ExpansionPanel {
@@ -33,16 +34,21 @@ export class ExpansionPanel {
     root.append(this.panel);
   }
 
-  toggle(): void {
-    this.panel.classList.toggle('hidden');
+  toggle(anchor?: HTMLElement | null): void {
+    if (this.visible) this.hide();
+    else reveal(this.panel, anchor);
   }
 
   hide(): void {
-    this.panel.classList.add('hidden');
+    conceal(this.panel);
+  }
+
+  get visible(): boolean {
+    return isRevealed(this.panel);
   }
 
   update(state: GameState, step: ExpansionStep | null): void {
-    if (this.panel.classList.contains('hidden')) return;
+    if (!this.visible) return;
     const { width, height } = state.factory.grid;
     const environment = getEnvironment(state.environment);
     if (this.site.textContent !== environment.name) {

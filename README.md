@@ -41,7 +41,8 @@ without touching your real factory.
 | `W` `A` `S` `D` | Pan |
 | `Q` / `E` | Rotate the view |
 | `R` | Rotate the piece being placed, or the selection |
-| `1`–`9`, `0` | Build tools |
+| `1`–`9`, `0` | Build tools, in the order shown on the toolbar |
+| `` ` `` | Next group of build tools |
 | `F` | Pick the tool for whatever is under the cursor |
 | `X` | Delete tool |
 | `Ctrl+C` / `Ctrl+V` | Copy an area / paste it |
@@ -60,6 +61,9 @@ without touching your real factory.
   on what to add.
 - **Progression**: research, machine upgrades, power, factory expansion, contracts,
   achievements and prestige.
+- **Interface**: a top bar that only shows what the factory has grown into, tooltips and
+  key hints for whatever you are doing, a card on any machine you point at, and settings for
+  interface size and reduced motion.
 - **Quality of life**: copy-paste and saved blueprints, offline progress, three environments
   and unlockable floor, belt and lighting styles.
 

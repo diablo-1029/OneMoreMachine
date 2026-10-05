@@ -84,6 +84,8 @@ export class PlacementController {
   /** Last cell touched by the current conveyor or delete drag. */
   private dragCell: { x: number; y: number } | null = null;
   private buildHover: BuildHover | null = null;
+  /** What the cursor is resting on while the select tool is active. */
+  private hovered: Selection = null;
   /** The recipe last chosen for each machine type, so the next one built makes the same thing. */
   private readonly lastRecipe = new Map<string, string>();
   /** Where the current copy drag started. */
@@ -112,6 +114,11 @@ export class PlacementController {
 
   get currentSelection(): Selection {
     return this.selection;
+  }
+
+  /** The machine or belt under the cursor with the select tool; drives the hover card. */
+  get currentHover(): Selection {
+    return this.hovered;
   }
 
   /** Set while a build ghost is showing. */
@@ -229,6 +236,7 @@ export class PlacementController {
   pointerLeave(): void {
     this.lastNdc = null;
     this.buildHover = null;
+    this.hovered = null;
     this.preview.hide();
   }
 
@@ -485,6 +493,7 @@ export class PlacementController {
   refreshHover(): void {
     const ndc = this.lastNdc;
     this.buildHover = null;
+    this.hovered = null;
     if (!ndc) {
       this.preview.hide();
       return;
@@ -560,6 +569,7 @@ export class PlacementController {
     }
 
     const target = this.targetAt(ndc.x, ndc.y);
+    if (target && tool.mode === 'select') this.hovered = { kind: target.kind, id: target.id };
     if (!target || (tool.mode === 'select' && target.id === this.selection?.id)) return this.preview.hide();
     this.preview.showHighlight(target.x, target.y, target.w, target.h, tool.mode === 'delete' ? 'delete' : 'hover');
   }

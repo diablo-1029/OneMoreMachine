@@ -4,6 +4,7 @@ import type { GameState } from '../core/game/GameState';
 import type { FactoryMetrics } from '../core/stats/FactoryMetrics';
 import { getResource } from '../data/resources';
 import { el, setText } from './dom';
+import { conceal, isRevealed, reveal } from './reveal';
 
 interface Card {
   id: number;
@@ -39,16 +40,17 @@ export class ContractsPanel {
     root.append(this.panel);
   }
 
-  toggle(): void {
-    this.panel.classList.toggle('hidden');
+  toggle(anchor?: HTMLElement | null): void {
+    if (this.visible) this.hide();
+    else reveal(this.panel, anchor);
   }
 
   hide(): void {
-    this.panel.classList.add('hidden');
+    conceal(this.panel);
   }
 
   get visible(): boolean {
-    return !this.panel.classList.contains('hidden');
+    return isRevealed(this.panel);
   }
 
   private build(contracts: Contract[]): void {

@@ -4,6 +4,12 @@ import type { ItemState } from '../factory/ItemState';
 import type { MachineState } from '../factory/MachineState';
 import type { Direction } from '../grid/GridPosition';
 
+/** Whether to keep interface animation to a minimum; "system" follows the operating system. */
+export type MotionPreference = 'system' | 'on' | 'off';
+
+/** Sizes the interface can be drawn at, as a multiple of the standard size. */
+export const UI_SCALES = [0.9, 1, 1.15, 1.3] as const;
+
 export interface GameSettings {
   masterVolume: number;
   sfx: boolean;
@@ -11,6 +17,9 @@ export interface GameSettings {
   shadows: boolean;
   /** The chosen floor, belt and lighting styles. */
   cosmetics: CosmeticChoice;
+  reduceMotion: MotionPreference;
+  /** One of UI_SCALES. */
+  uiScale: number;
 }
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -19,6 +28,8 @@ export const DEFAULT_SETTINGS: GameSettings = {
   music: true,
   shadows: true,
   cosmetics: { ...DEFAULT_COSMETICS },
+  reduceMotion: 'system',
+  uiScale: 1,
 };
 
 export interface SavedConveyor {
