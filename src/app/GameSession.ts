@@ -6,6 +6,7 @@ import { formatMoney } from '../core/economy/Currency';
 import { AUTOSAVE_INTERVAL, TICK_RATE } from '../core/game/Constants';
 import { applyOfflineProgress, mergeReports, OFFLINE, type OfflineReport } from '../core/game/OfflineProgress';
 import type { GameState } from '../core/game/GameState';
+import { createPrestigeGame } from '../core/game/Prestige';
 import { Simulation } from '../core/game/Simulation';
 import { TickSystem, type GameSpeed } from '../core/game/TickSystem';
 import { currentHint } from '../core/game/Tutorial';
@@ -38,6 +39,7 @@ import { HUD } from '../ui/HUD';
 import { MachinePanel } from '../ui/MachinePanel';
 import { NotificationSystem } from '../ui/NotificationSystem';
 import { OfflineReportPanel } from '../ui/OfflineReportPanel';
+import { PrestigePanel } from '../ui/PrestigePanel';
 import { ResearchPanel } from '../ui/ResearchPanel';
 import { SettingsPanel } from '../ui/SettingsPanel';
 import { StatsPanel } from '../ui/StatsPanel';
@@ -65,6 +67,8 @@ export interface SessionContext {
   onGridChanged: (width: number, height: number) => void;
   /** Seconds since the loaded save was written; 0 for a new factory. */
   awaySeconds: number;
+  /** Replaces this factory with a newly founded one and restarts the game on it. */
+  onPrestige: (next: GameState) => void;
 }
 
 /**
@@ -99,6 +103,9 @@ export class GameSession {
   private readonly offlinePanel: OfflineReportPanel;
   private readonly achievementsPanel: AchievementsPanel;
   private readonly blueprintsPanel: BlueprintsPanel;
+  private readonly prestigePanel: PrestigePanel;
+  /** True once this factory has been sold; from then on it must never be saved again. */
+  private retired = false;
   private readonly notifications: NotificationSystem;
   private readonly debugRenderer: DebugRenderer | null = null;
   private readonly debugPanel: DebugPanel | null = null;
@@ -197,7 +204,17 @@ export class GameSession {
         click();
         this.toggleDropdown(this.blueprintsPanel);
       },
+      openPrestige: () => {
+        click();
+        this.prestigePanel.open();
+      },
     });
+    this.prestigePanel = new PrestigePanel(
+      ctx.uiRoot,
+      this.sim,
+      (environmentId) => this.prestige(environmentId),
+      (open) => this.input.setEnabled(!open),
+    );
     let storage: Storage | null = null;
     try {
       storage = window.localStorage;
@@ -354,6 +371,15 @@ export class GameSession {
     }
   }
 
+  // ------------------------------------------------------------ prestige
+
+  private prestige(environmentId: string): void {
+    const next = createPrestigeGame(this.sim.state, environmentId);
+    if (!next) return;
+    this.retired = true;
+    this.ctx.onPrestige(next);
+  }
+
   // ------------------------------------------------------------ research
 
   private research(id: string): void {
@@ -411,6 +437,8 @@ export class GameSession {
   // ---------------------------------------------------------------- save
 
   save(): void {
+    // A sold factory must not overwrite the new one, e.g. from the page-unload handler.
+    if (this.retired) return;
     this.ctx.saveManager.save(this.sim.state, this.ctx.settings);
     this.autosaveTimer = 0;
     this.saveCountdown = -1;
@@ -505,6 +533,8 @@ export class GameSession {
     this.contractsPanel.update(state, this.sim.metrics);
     this.achievementsPanel.update();
     this.blueprintsPanel.update(state);
+    this.prestigePanel.update();
+    this.hud.setStars(state.prestige.stars);
     this.expansionPanel.update(state, this.sim.nextExpansion());
     this.hud.setResearchAvailable(this.researchPanel.hasAffordable());
     if (this.debugPanel?.visible) {

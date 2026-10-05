@@ -2,6 +2,7 @@ import { BALANCE } from '../../data/balance';
 import { DEFAULT_ENVIRONMENT } from '../../data/environments';
 import { createContractState, type ContractState } from '../contracts/Contracts';
 import type { PowerState } from '../power/Power';
+import type { PrestigeState } from './Prestige';
 import { Economy } from '../economy/Economy';
 import { FactoryState } from '../factory/FactoryState';
 import { DEFAULT_GRID_SIZE } from './Constants';
@@ -27,6 +28,7 @@ export interface GameState {
   achievements: string[];
   /** Id of the site the factory stands on. Fixed for the life of the factory. */
   environment: string;
+  prestige: PrestigeState;
 }
 
 export function createNewGame(environment: string = DEFAULT_ENVIRONMENT): GameState {
@@ -41,5 +43,6 @@ export function createNewGame(environment: string = DEFAULT_ENVIRONMENT): GameSt
     power: { baseSupply: BALANCE.power.baseSupply },
     achievements: [],
     environment,
+    prestige: { stars: 0, count: 0 },
   };
 }

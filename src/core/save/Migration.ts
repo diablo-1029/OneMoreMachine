@@ -25,6 +25,11 @@ const MIGRATIONS: Record<number, (save: RawSave) => RawSave> = {
     save.research = [...LEGACY_RESEARCH];
     return save;
   },
+  // v9 added prestige.
+  8: (save) => {
+    save.prestige = { stars: 0, count: 0 };
+    return save;
+  },
   // v8 added environments; every earlier factory stands on the original meadow.
   7: (save) => {
     save.environment = 'meadow';

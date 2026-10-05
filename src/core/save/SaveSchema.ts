@@ -54,6 +54,7 @@ export interface SaveData {
   power: { baseSupply: number };
   achievements: string[];
   environment: string;
+  prestige: { stars: number; count: number };
   settings: GameSettings;
 }
 

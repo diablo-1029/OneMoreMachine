@@ -385,6 +385,51 @@ kbd {
   white-space: nowrap;
 }
 
+/* --------------------------------------------------------------- prestige */
+
+.prestige-modal {
+  width: min(440px, 100%);
+}
+
+.prestige-modal .panel-description {
+  margin: 0;
+}
+
+.prestige-progress {
+  max-width: none;
+  flex: none;
+}
+
+.prestige-progress .progress-fill {
+  background: #ffcf40;
+}
+
+.prestige-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.prestige-sites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.prestige-modal .button:disabled {
+  background: var(--panel-raised);
+  border-color: var(--border);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.button.primary.danger-armed {
+  background: var(--bad);
+  color: #2a0a0a;
+}
+
 /* ------------------------------------------------------------- blueprints */
 
 .blueprints-panel {

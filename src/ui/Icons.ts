@@ -79,6 +79,9 @@ export const ICONS: Record<string, string> = {
     '<rect x="5" y="6" width="22" height="20" rx="2.500" stroke="currentColor" stroke-width="2.400"/>' +
       '<path d="M5 13h22M12 13v13M12 19.500h15" stroke="currentColor" stroke-width="2"/>',
   ),
+  prestige: svg(
+    '<path d="M16 4l3.600 7.600 8.400 1-6.200 5.700 1.700 8.200L16 22.400l-7.500 4.100 1.700-8.200L4 12.600l8.400-1z" fill="currentColor"/>',
+  ),
   achievements: svg(
     '<path d="M10 5h12v7a6 6 0 01-12 0z" stroke="currentColor" stroke-width="2.4"/>' +
       '<path d="M10 7H5.500v2a4 4 0 004.500 4M22 7h4.500v2a4 4 0 01-4.500 4M16 18v5M11 27h10M13 23h6" stroke="currentColor" stroke-width="2.4"/>',

@@ -16,6 +16,8 @@ import { SettingsPanel } from '../ui/SettingsPanel';
 import { GameLoop } from './GameLoop';
 import { GameSession } from './GameSession';
 
+const CONTINUE_FLAG = 'omm.continue';
+
 /**
  * Application shell: creates the renderer and the scenery that exists on the menu,
  * then hands over to a GameSession once the player continues or starts a factory.
@@ -77,6 +79,8 @@ export class App {
       onSettings: () => menuSettings.open(),
     });
     this.menu.show(await this.saveManager.hasSave());
+    // Straight back into play after selling up, without a stop at the menu.
+    if (this.takeFlag(CONTINUE_FLAG)) void this.continueGame();
 
     new GameLoop(
       (dt) => this.frame(dt),
@@ -149,6 +153,12 @@ export class App {
       onSettingsChanged: (settings) => this.applySettings(settings),
       onGridChanged: (w, h) => this.buildWorld(w, h),
       awaySeconds,
+      onPrestige: (next) => {
+        // The page is reloaded onto the new factory; a session is only ever built once per page.
+        this.saveManager.save(next, this.settings);
+        this.setFlag(CONTINUE_FLAG);
+        window.location.reload();
+      },
     });
     this.menu.hide();
 
@@ -163,6 +173,25 @@ export class App {
     this.camera.update(realDt);
     this.session?.frame(realDt);
     this.renderer.render(this.sceneManager.scene, this.camera.camera);
+  }
+
+  private setFlag(key: string): void {
+    try {
+      sessionStorage.setItem(key, '1');
+    } catch {
+      // Without it the player simply lands on the menu and presses Continue.
+    }
+  }
+
+  /** Reads and clears a one-shot flag left for the next page load. */
+  private takeFlag(key: string): boolean {
+    try {
+      const set = sessionStorage.getItem(key) === '1';
+      sessionStorage.removeItem(key);
+      return set;
+    } catch {
+      return false;
+    }
   }
 
   private showFatal(message: string): void {

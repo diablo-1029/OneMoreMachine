@@ -14,6 +14,7 @@ export interface HudActions {
   toggleContracts: () => void;
   toggleAchievements: () => void;
   toggleBlueprints: () => void;
+  openPrestige: () => void;
 }
 
 /** Top bar: money, income rate, pause / speed and settings. */
@@ -25,6 +26,7 @@ export class HUD {
   private readonly power: HTMLElement;
   private readonly powerValue: HTMLElement;
   private readonly researchButton: HTMLButtonElement;
+  private readonly starCount: HTMLElement;
   private shownMoney = -1;
 
   constructor(root: HTMLElement, actions: HudActions) {
@@ -95,6 +97,18 @@ export class HUD {
       attrs: { type: 'button', 'aria-label': 'Blueprints' },
     });
 
+    this.starCount = el('span', { class: 'star-count' });
+    const prestigeButton = el(
+      'button',
+      {
+        class: 'pill prestige-button',
+        title: 'Sell up and start again for permanent bonuses',
+        onClick: actions.openPrestige,
+        attrs: { type: 'button', 'aria-label': 'Sell up' },
+      },
+      [el('span', { class: 'power-icon', html: ICONS.prestige }), this.starCount],
+    );
+
     root.append(
       el('div', { class: 'topbar' }, [
         el('div', { class: 'topbar-group' }, [
@@ -116,6 +130,7 @@ export class HUD {
           expandButton,
           blueprintsButton,
           achievementsButton,
+          prestigeButton,
         ]),
         el('div', { class: 'topbar-group' }, [
           el('div', { class: 'pill speed' }, [
@@ -133,6 +148,10 @@ export class HUD {
         ]),
       ]),
     );
+  }
+
+  setStars(stars: number): void {
+    setText(this.starCount, String(stars));
   }
 
   /** Shows a dot on the Research button when something can be bought. */

@@ -35,6 +35,7 @@ import type { ResearchNode } from '../../data/research';
 import { TICK_DT } from './Constants';
 import { EventBus } from './EventBus';
 import type { GameState } from './GameState';
+import { saleMultiplier } from './Prestige';
 import { advanceTutorial } from './Tutorial';
 
 export interface SimulationEvents {
@@ -184,7 +185,7 @@ export class Simulation {
    */
   creditSales(resourceId: string, count: number): void {
     if (count <= 0) return;
-    this.state.economy.award(sellValue(resourceId) * count);
+    this.state.economy.award(this.salePrice(resourceId) * count);
     this.state.stats.sold[resourceId] = (this.state.stats.sold[resourceId] ?? 0) + count;
     for (const contract of [...this.state.contracts.active]) {
       if (contract.kind !== 'deliver' || contract.resourceId !== resourceId) continue;
@@ -200,6 +201,11 @@ export class Simulation {
     contracts.active = contracts.active.filter((c) => c.id !== id);
     fillContracts(contracts, research);
     return true;
+  }
+
+  /** What one unit sells for: its base value raised by the stars earned from earlier factories. */
+  salePrice(resourceId: string): number {
+    return sellValue(resourceId) * saleMultiplier(this.state.prestige.stars);
   }
 
   /** Whether a machine would take one unit through the given input port right now. */
@@ -226,7 +232,7 @@ export class Simulation {
         machine.stored.push(resourceId);
         break;
       case 'seller': {
-        const value = sellValue(resourceId);
+        const value = this.salePrice(resourceId);
         this.state.economy.earn(value);
         this.state.stats.sold[resourceId] = (this.state.stats.sold[resourceId] ?? 0) + 1;
         this.metrics.count('sold', resourceId, 1);

@@ -199,6 +199,22 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     }),
   },
   {
+    id: 'prestige_1',
+    kind: 'achievement',
+    name: 'Serial Founder',
+    description: 'Sell a factory and start again.',
+    reward: 500,
+    progress: (sim) => ({ current: Math.min(sim.state.prestige.count, 1), target: 1 }),
+  },
+  {
+    id: 'stars_10',
+    kind: 'achievement',
+    name: 'Household Name',
+    description: 'Hold 10 stars.',
+    reward: 5000,
+    progress: (sim) => ({ current: sim.state.prestige.stars, target: 10 }),
+  },
+  {
     id: 'contracts_1',
     kind: 'achievement',
     name: 'Signed and Delivered',
