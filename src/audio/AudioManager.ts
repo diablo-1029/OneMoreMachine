@@ -10,7 +10,8 @@ export type SoundId =
   | 'furnace'
   | 'assembler'
   | 'rotate'
-  | 'thunk';
+  | 'thunk'
+  | 'research';
 
 /** Minimum seconds between two plays of the same sound, so a busy factory never becomes a wall of noise. */
 const COOLDOWNS: Record<SoundId, number> = {
@@ -24,6 +25,7 @@ const COOLDOWNS: Record<SoundId, number> = {
   assembler: 0.3,
   rotate: 0.03,
   thunk: 0.14,
+  research: 0.3,
 };
 
 /** C major pentatonic across two octaves; any combination of these sounds consonant. */
@@ -164,6 +166,12 @@ export class AudioManager {
         break;
       case 'furnace':
         this.noise(0.4, 500, 'lowpass', 0.07);
+        break;
+      case 'research':
+        // A rising three-note chime.
+        this.tone('triangle', 659.25, 659.25, 0.16, 0.1);
+        this.tone('triangle', 880, 880, 0.16, 0.1, 0.11);
+        this.tone('triangle', 1318.5, 1318.5, 0.4, 0.1, 0.22);
         break;
       case 'thunk':
         this.tone('sine', 120, 70, 0.06, 0.05);

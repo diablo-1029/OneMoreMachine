@@ -9,6 +9,7 @@ export interface KeyboardActions {
   togglePause: () => void;
   toggleDebug: () => void;
   toggleBottleneckView: () => void;
+  toggleResearch: () => void;
 }
 
 /**
@@ -16,6 +17,7 @@ export interface KeyboardActions {
  *   R              rotate       Esc     cancel            Delete  remove selection
  *   1-8            build tools  X       delete tool       Space   pause
  *   F              pick tool from what is under the cursor  B       bottleneck view
+ *   T              research
  */
 export class KeyboardController {
   enabled = true;
@@ -64,6 +66,9 @@ export class KeyboardController {
         break;
       case 'KeyB':
         this.actions.toggleBottleneckView();
+        break;
+      case 'KeyT':
+        this.actions.toggleResearch();
         break;
       case 'Escape':
         this.placement.cancel();

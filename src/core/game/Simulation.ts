@@ -15,7 +15,9 @@ import { routerAccepts, routerEntryLimit, routerInsert, updateRouter, type Route
 import { FactoryMetrics } from '../stats/FactoryMetrics';
 import { rotateDir, type Direction } from '../grid/GridPosition';
 import { validatePlacement, type PlacementFailure } from '../grid/PlacementValidator';
-import { defaultRecipeId, getRecipe, hasRecipe } from '../recipes/RecipeRegistry';
+import { getRecipe, hasRecipe, recipesFor } from '../recipes/RecipeRegistry';
+import { getResearchNode, researchStatus, unlockedMachines, unlockedRecipes } from '../research/Research';
+import type { ResearchNode } from '../../data/research';
 import { TICK_DT } from './Constants';
 import { EventBus } from './EventBus';
 import type { GameState } from './GameState';
@@ -35,9 +37,16 @@ export interface SimulationEvents {
   /** A crafting machine took an ingredient in. */
   itemEntered: { machine: MachineState; resourceId: string };
   tutorialAdvanced: number;
+  researchCompleted: ResearchNode;
 }
 
-export type CommandFailure = PlacementFailure | 'cannot_afford' | 'not_found' | 'invalid_recipe';
+export type CommandFailure =
+  | PlacementFailure
+  | 'cannot_afford'
+  | 'not_found'
+  | 'invalid_recipe'
+  | 'not_researched'
+  | 'already_researched';
 export type CommandResult<T> = { ok: true; value: T } | { ok: false; reason: CommandFailure };
 
 const fail = (reason: CommandFailure): { ok: false; reason: CommandFailure } => ({ ok: false, reason });
@@ -178,6 +187,7 @@ export class Simulation {
 
   canPlaceMachine(type: string, gridX: number, gridY: number, rotation: Direction): CommandResult<null> {
     const { factory, economy } = this.state;
+    if (!this.isMachineUnlocked(type)) return fail('not_researched');
     const cells = footprintCells(getMachineDef(type), gridX, gridY, rotation);
     const check = validatePlacement(factory.grid, factory.occupancy, cells);
     if (!check.valid) return fail(check.reason);
@@ -185,14 +195,39 @@ export class Simulation {
     return { ok: true, value: null };
   }
 
-  /** Whether the player may currently use a recipe at all. Everything is available until research gates it. */
-  isRecipeAvailable(recipeId: string): boolean {
-    return hasRecipe(recipeId);
+  // ------------------------------------------------------------ research
+
+  isMachineUnlocked(type: string): boolean {
+    return type === 'conveyor' || unlockedMachines(this.state.research).includes(type);
   }
 
-  /** Whether a machine of this type may run the recipe. */
+  /** Whether research has made a recipe available to the player. */
+  isRecipeAvailable(recipeId: string): boolean {
+    return unlockedRecipes(this.state.research).includes(recipeId);
+  }
+
+  /** Whether a machine of this type may run the recipe: it must be its own, and researched. */
   canUseRecipe(type: string, recipeId: string): boolean {
-    return hasRecipe(recipeId) && getRecipe(recipeId).machineType === type;
+    return hasRecipe(recipeId) && getRecipe(recipeId).machineType === type && this.isRecipeAvailable(recipeId);
+  }
+
+  /** The recipe a newly built machine starts on: the first one of its type that is researched. */
+  private startingRecipe(type: string): string | null {
+    return recipesFor(type).find((recipe) => this.isRecipeAvailable(recipe.id))?.id ?? null;
+  }
+
+  /** Buys a research node. It completes immediately. */
+  research(id: string): CommandResult<ResearchNode> {
+    const node = getResearchNode(id);
+    if (!node) return fail('not_found');
+    const status = researchStatus(this.state.research, node);
+    if (status === 'done') return fail('already_researched');
+    if (status === 'locked') return fail('not_researched');
+    if (!this.state.economy.spend(node.cost)) return fail('cannot_afford');
+    this.state.research.push(node.id);
+    this.events.emit('researchCompleted', node);
+    this.checkTutorial();
+    return { ok: true, value: node };
   }
 
   /** `recipeId` picks what the machine makes; omitted, it starts on the type's first recipe. */
@@ -214,7 +249,7 @@ export class Simulation {
       gridX,
       gridY,
       rotation,
-      recipeId ?? defaultRecipeId(type),
+      recipeId ?? this.startingRecipe(type),
     );
     factory.addMachine(machine);
     this.topologyChanged();

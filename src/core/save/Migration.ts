@@ -1,3 +1,4 @@
+import { LEGACY_RESEARCH } from '../../data/research';
 import { SAVE_VERSION } from '../game/Constants';
 import { SaveError } from './SaveSchema';
 
@@ -14,6 +15,11 @@ const MIGRATIONS: Record<number, (save: RawSave) => RawSave> = {
         Object.assign(machine, { transit: [], routeIndex: 0, lastInput: -1, stored: [] });
       }
     }
+    return save;
+  },
+  // v3 added research. Everything it gates in older saves was free before, so grant it.
+  2: (save) => {
+    save.research = [...LEGACY_RESEARCH];
     return save;
   },
 };

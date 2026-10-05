@@ -52,6 +52,8 @@ const FAILURE_MESSAGES: Record<CommandFailure, string> = {
   blocked: 'Can’t build there',
   not_found: 'Nothing there',
   invalid_recipe: 'That machine can’t make that',
+  not_researched: 'Not researched yet',
+  already_researched: 'Already researched',
 };
 
 /**
@@ -110,6 +112,8 @@ export class PlacementController {
 
   /** Picks a build tool, or drops back to select if it is already active. */
   toggleBuild(type: BuildableType): void {
+    // Hotkeys can name a tool the toolbar is still hiding.
+    if (!this.sim.isMachineUnlocked(type)) return this.fail('not_researched');
     if (this.tool.mode === 'build' && this.tool.type === type) {
       this.setTool({ mode: 'select' });
       return;

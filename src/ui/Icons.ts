@@ -57,6 +57,10 @@ export const ICONS: Record<string, string> = {
       '<path d="M16 22l5-8" stroke="currentColor" stroke-width="2.6"/>' +
       '<circle cx="16" cy="22" r="2.2" fill="currentColor"/>',
   ),
+  research: svg(
+    '<path d="M13 5h6M14 5v8l-6 11a2 2 0 001.800 3h12.400a2 2 0 001.800-3l-6-11V5" stroke="currentColor" stroke-width="2.4"/>' +
+      '<path d="M10.500 21h11" stroke="currentColor" stroke-width="2.4"/>',
+  ),
   delete: svg(
     '<path d="M7 10h18M13 10V7h6v3M9.500 10l1 16h11l1-16M14 14v8M18 14v8" stroke="#f87171" stroke-width="2.2"/>',
   ),

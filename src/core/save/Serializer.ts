@@ -9,6 +9,7 @@ import type { GameState } from '../game/GameState';
 import { isDirection } from '../grid/GridPosition';
 import { validatePlacement } from '../grid/PlacementValidator';
 import { hasRecipe } from '../recipes/RecipeRegistry';
+import { isResearchId } from '../research/Research';
 import { migrateSave } from './Migration';
 import { DEFAULT_SETTINGS, SaveError, type GameSettings, type SaveData } from './SaveSchema';
 
@@ -43,7 +44,7 @@ export function serializeGame(state: GameState, settings: GameSettings): SaveDat
     stats: { produced: { ...state.stats.produced }, sold: { ...state.stats.sold } },
     simTime: state.simTime,
     tutorialStep: state.tutorialStep,
-    unlocked: [...state.unlocked],
+    research: [...state.research],
     settings: { ...settings },
   };
 }
@@ -236,7 +237,10 @@ export function restoreGame(raw: unknown): GameState {
       sold: counts(stats.sold ?? {}, 'Invalid stats'),
     },
     tutorialStep: integer(save.tutorialStep ?? 0, 'Invalid tutorial step'),
-    unlocked: Array.isArray(save.unlocked) ? save.unlocked.filter((u): u is string => typeof u === 'string') : [],
+    // Ids this version does not know (e.g. from a removed node) are dropped rather than failing the load.
+    research: Array.isArray(save.research)
+      ? [...new Set(save.research.filter((id): id is string => typeof id === 'string' && isResearchId(id)))]
+      : [],
   };
 }
 

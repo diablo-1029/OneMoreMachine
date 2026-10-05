@@ -22,6 +22,7 @@ const CONTROLS: [string, string][] = [
   ['F', 'Pick tool under cursor'],
   ['X', 'Delete tool'],
   ['B', 'Bottleneck view'],
+  ['T', 'Research'],
   ['Del', 'Remove selected'],
   ['Space', 'Pause'],
   ['Home', 'Centre view'],

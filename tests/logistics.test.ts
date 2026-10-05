@@ -3,12 +3,14 @@ import { insertItem } from '../src/core/factory/ConveyorSystem';
 import { TICK_RATE } from '../src/core/game/Constants';
 import { createNewGame } from '../src/core/game/GameState';
 import { Simulation } from '../src/core/game/Simulation';
+import { allResearchIds } from '../src/core/research/Research';
 import { restoreGame, serializeGame } from '../src/core/save/Serializer';
 import { DEFAULT_SETTINGS } from '../src/core/save/SaveSchema';
 import { analyzeBottlenecks } from '../src/core/stats/Bottlenecks';
 
 function newSim(): Simulation {
   const state = createNewGame();
+  state.research = allResearchIds();
   state.economy.money = 5000;
   return new Simulation(state);
 }

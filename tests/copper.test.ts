@@ -3,6 +3,7 @@ import { FactoryState } from '../src/core/factory/FactoryState';
 import { TICK_RATE } from '../src/core/game/Constants';
 import { createNewGame } from '../src/core/game/GameState';
 import { Simulation } from '../src/core/game/Simulation';
+import { allResearchIds } from '../src/core/research/Research';
 import { restoreGame, serializeGame } from '../src/core/save/Serializer';
 import { DEFAULT_SETTINGS } from '../src/core/save/SaveSchema';
 import { analyzeBottlenecks } from '../src/core/stats/Bottlenecks';
@@ -10,6 +11,7 @@ import { analyzeBottlenecks } from '../src/core/stats/Bottlenecks';
 /** A wider floor than the game starts with, so a whole motor chain fits in a straight layout. */
 function newSim(): Simulation {
   const state = createNewGame();
+  state.research = allResearchIds();
   state.factory = new FactoryState(20, 12);
   state.economy.money = 10000;
   return new Simulation(state);

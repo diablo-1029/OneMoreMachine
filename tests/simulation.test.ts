@@ -4,11 +4,13 @@ import { getMachineDef, worldPorts } from '../src/core/factory/MachineRegistry';
 import { ITEM_SPACING, TICK_RATE } from '../src/core/game/Constants';
 import { createNewGame } from '../src/core/game/GameState';
 import { Simulation } from '../src/core/game/Simulation';
+import { allResearchIds } from '../src/core/research/Research';
 import { restoreGame, serializeGame } from '../src/core/save/Serializer';
 import { DEFAULT_SETTINGS, SaveError } from '../src/core/save/SaveSchema';
 
 function newSim(money = 1000): Simulation {
   const state = createNewGame();
+  state.research = allResearchIds();
   state.economy.money = money;
   return new Simulation(state);
 }

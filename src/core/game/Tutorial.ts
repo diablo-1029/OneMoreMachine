@@ -39,7 +39,11 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     done: (s) => s.economy.totalEarned > 0,
   },
   {
-    text: 'Gears sell for three times a plate. Add an Assembler between the Furnace and the Seller.',
+    text: 'Gears sell for three times a plate. Open Research (T) and unlock Gear Assembly.',
+    done: (s) => s.research.includes('gear_assembly'),
+  },
+  {
+    text: 'Add an Assembler between the Furnace and the Seller to start making Gears.',
     done: (s) => hasMachine(s, 'assembler'),
   },
 ];

@@ -48,7 +48,7 @@ export interface SaveData {
 
   simTime: number;
   tutorialStep: number;
-  unlocked: string[];
+  research: string[];
   settings: GameSettings;
 }
 

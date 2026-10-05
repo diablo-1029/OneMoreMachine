@@ -3,6 +3,7 @@ import { buildCost } from '../core/economy/Pricing';
 import { getMachineDef } from '../core/factory/MachineRegistry';
 import type { BuildableType } from '../core/factory/MachineTypes';
 import type { GameState } from '../core/game/GameState';
+import { unlockedMachines } from '../core/research/Research';
 import { BUILD_ORDER, CONVEYOR_INFO } from '../data/machines';
 import type { PlacementController, Tool } from '../input/PlacementController';
 import { el } from './dom';
@@ -79,9 +80,10 @@ export class BuildToolbar {
   }
 
   update(state: GameState): void {
+    const unlocked = unlockedMachines(state.research);
     for (const entry of this.entries) {
       entry.button.classList.toggle('unaffordable', !state.economy.canAfford(entry.cost));
-      entry.button.classList.toggle('hidden', !state.unlocked.includes(entry.type));
+      entry.button.classList.toggle('hidden', !unlocked.includes(entry.type));
     }
   }
 }

@@ -1,5 +1,4 @@
 import { BALANCE } from '../../data/balance';
-import { BUILD_ORDER } from '../../data/machines';
 import { Economy } from '../economy/Economy';
 import { FactoryState } from '../factory/FactoryState';
 import { DEFAULT_GRID_SIZE } from './Constants';
@@ -17,7 +16,8 @@ export interface GameState {
   stats: GameStats;
   /** Index of the current tutorial hint; past the end means the tutorial is finished. */
   tutorialStep: number;
-  unlocked: string[];
+  /** Ids of completed research nodes; what can be built and made follows from these. */
+  research: string[];
 }
 
 export function createNewGame(): GameState {
@@ -27,6 +27,6 @@ export function createNewGame(): GameState {
     simTime: 0,
     stats: { produced: {}, sold: {} },
     tutorialStep: 0,
-    unlocked: [...BUILD_ORDER],
+    research: [],
   };
 }

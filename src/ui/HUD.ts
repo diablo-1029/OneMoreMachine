@@ -9,6 +9,7 @@ export interface HudActions {
   openSettings: () => void;
   toggleStats: () => void;
   toggleBottleneckView: () => void;
+  openResearch: () => void;
 }
 
 /** Top bar: money, income rate, pause / speed and settings. */
@@ -17,6 +18,7 @@ export class HUD {
   private readonly income: HTMLElement;
   private readonly speedButtons = new Map<GameSpeed, HTMLButtonElement>();
   private readonly bottleneckButton: HTMLButtonElement;
+  private readonly researchButton: HTMLButtonElement;
   private shownMoney = -1;
 
   constructor(root: HTMLElement, actions: HudActions) {
@@ -44,6 +46,14 @@ export class HUD {
       attrs: { type: 'button', 'aria-label': 'Bottleneck view', 'aria-pressed': 'false' },
     });
 
+    this.researchButton = el('button', {
+      class: 'pill icon-button',
+      title: 'Research (T)',
+      html: ICONS.research,
+      onClick: actions.openResearch,
+      attrs: { type: 'button', 'aria-label': 'Research' },
+    });
+
     root.append(
       el('div', { class: 'topbar' }, [
         el('div', { class: 'topbar-group' }, [
@@ -59,6 +69,7 @@ export class HUD {
             [this.income],
           ),
           this.bottleneckButton,
+          this.researchButton,
         ]),
         el('div', { class: 'topbar-group' }, [
           el('div', { class: 'pill speed' }, [
@@ -76,6 +87,11 @@ export class HUD {
         ]),
       ]),
     );
+  }
+
+  /** Shows a dot on the Research button when something can be bought. */
+  setResearchAvailable(available: boolean): void {
+    this.researchButton.classList.toggle('has-dot', available);
   }
 
   setBottleneckView(active: boolean): void {

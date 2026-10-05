@@ -30,6 +30,7 @@ import { el } from '../ui/dom';
 import { HUD } from '../ui/HUD';
 import { MachinePanel } from '../ui/MachinePanel';
 import { NotificationSystem } from '../ui/NotificationSystem';
+import { ResearchPanel } from '../ui/ResearchPanel';
 import { SettingsPanel } from '../ui/SettingsPanel';
 import { StatsPanel } from '../ui/StatsPanel';
 
@@ -78,6 +79,7 @@ export class GameSession {
   private readonly machinePanel: MachinePanel;
   private readonly stats: StatsPanel;
   private readonly settingsPanel: SettingsPanel;
+  private readonly researchPanel: ResearchPanel;
   private readonly notifications: NotificationSystem;
   private readonly debugRenderer: DebugRenderer | null = null;
   private readonly debugPanel: DebugPanel | null = null;
@@ -126,6 +128,7 @@ export class GameSession {
       togglePause: () => this.togglePause(),
       toggleDebug: () => this.debugPanel?.toggle(),
       toggleBottleneckView: () => this.toggleBottleneckView(),
+      toggleResearch: () => this.researchPanel.toggle(),
     });
 
     const click = () => ctx.audio.play('click');
@@ -148,7 +151,17 @@ export class GameSession {
         click();
         this.toggleBottleneckView();
       },
+      openResearch: () => {
+        click();
+        this.researchPanel.toggle();
+      },
     });
+    this.researchPanel = new ResearchPanel(
+      ctx.uiRoot,
+      () => this.sim.state,
+      (id) => this.research(id),
+      (open) => this.input.setEnabled(!open),
+    );
     this.stats = new StatsPanel(ctx.uiRoot, (machineId) => this.focusMachine(machineId));
     this.toolbar = new BuildToolbar(ctx.uiRoot, this.placement, click);
     this.machinePanel = new MachinePanel(ctx.uiRoot, this.sim, this.placement, click);
@@ -218,8 +231,24 @@ export class GameSession {
       this.requestSave();
     });
     events.on('tutorialAdvanced', () => this.notifications.setHint(currentHint(this.sim.state)));
+    events.on('researchCompleted', (node) => {
+      audio.play('research');
+      this.notifications.toast(`Researched: ${node.name}`);
+      this.requestSave();
+      this.updateUi();
+    });
 
     this.placement.events.on('message', (message) => this.notifications.toast(message));
+  }
+
+  // ------------------------------------------------------------ research
+
+  private research(id: string): void {
+    const result = this.sim.research(id);
+    if (!result.ok) {
+      this.ctx.audio.play('error');
+      if (result.reason === 'cannot_afford') this.notifications.toast('Not enough money');
+    }
   }
 
   // ---------------------------------------------------------- bottlenecks
@@ -340,6 +369,8 @@ export class GameSession {
     this.toolbar.update(state);
     this.machinePanel.update();
     this.stats.update(state, this.sim.metrics);
+    this.researchPanel.update();
+    this.hud.setResearchAvailable(this.researchPanel.hasAffordable());
     if (this.debugPanel?.visible) {
       const info = this.ctx.renderer.webgl.info.render;
       this.debugPanel.update({

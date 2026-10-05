@@ -109,6 +109,23 @@
   height: 22px;
 }
 
+.pill.icon-button {
+  position: relative;
+}
+
+/* "Something here needs you" marker, e.g. affordable research. */
+.pill.icon-button.has-dot::after {
+  content: '';
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--panel);
+}
+
 .pill.icon-button.active {
   background: var(--accent);
   color: var(--accent-ink);
