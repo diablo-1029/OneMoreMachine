@@ -96,12 +96,15 @@ export class SaveManager {
     return (await this.readNewest()) !== undefined;
   }
 
-  /** Throws SaveError when there is no save or it cannot be restored. */
-  async load(): Promise<GameState> {
+  /**
+   * Throws SaveError when there is no save or it cannot be restored.
+   * `savedAt` is when the save was written (ms since the epoch), for working out time away.
+   */
+  async load(): Promise<{ state: GameState; savedAt: number }> {
     const raw = await this.readNewest();
     if (raw === undefined) throw new SaveError('No save found');
     try {
-      return restoreGame(raw);
+      return { state: restoreGame(raw), savedAt: timestampOf(raw) };
     } catch (error) {
       if (error instanceof SaveError) throw error;
       throw new SaveError(error instanceof Error ? error.message : 'Unknown save error');

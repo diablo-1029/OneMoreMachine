@@ -385,6 +385,34 @@ kbd {
   white-space: nowrap;
 }
 
+/* ---------------------------------------------------------------- offline */
+
+.offline-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.offline-body .panel-description {
+  margin: 0;
+}
+
+.offline-earned {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 6px;
+  font-size: 30px;
+  font-weight: 900;
+  color: #ffe27a;
+  font-variant-numeric: tabular-nums;
+}
+
+.offline-earned .coin {
+  width: 26px;
+  height: 26px;
+}
+
 /* -------------------------------------------------------------- contracts */
 
 .contracts-panel {

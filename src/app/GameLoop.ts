@@ -1,7 +1,5 @@
 /** Longest frame step fed to the game; anything longer is treated as a stall, not as elapsed play time. */
 const MAX_FRAME_DT = 0.25;
-/** Most real time the background path will catch up in one go. */
-const MAX_BACKGROUND_DT = 60;
 const WATCHDOG_INTERVAL_MS = 500;
 
 /**
@@ -11,6 +9,8 @@ const WATCHDOG_INTERVAL_MS = 500;
  */
 export class GameLoop {
   private lastTime = 0;
+  /** Wall-clock time of the last frame or catch-up. Unlike performance.now(), it keeps counting while the computer sleeps. */
+  private lastWall = 0;
 
   constructor(
     /** Called once per rendered frame with real seconds since the previous one. */
@@ -21,19 +21,23 @@ export class GameLoop {
 
   start(): void {
     this.lastTime = performance.now();
+    this.lastWall = Date.now();
     requestAnimationFrame(this.onFrame);
     window.setInterval(() => {
-      const now = performance.now();
-      const elapsed = (now - this.lastTime) / 1000;
+      const wall = Date.now();
+      const elapsed = (wall - this.lastWall) / 1000;
       if (elapsed < WATCHDOG_INTERVAL_MS / 1000) return;
-      this.lastTime = now;
-      this.background(Math.min(elapsed, MAX_BACKGROUND_DT));
+      this.lastWall = wall;
+      this.lastTime = performance.now();
+      // The full gap is passed on; the game decides how to catch up on a long one.
+      this.background(elapsed);
     }, WATCHDOG_INTERVAL_MS);
   }
 
   private readonly onFrame = (now: number): void => {
     const dt = Math.max(0, (now - this.lastTime) / 1000);
     this.lastTime = now;
+    this.lastWall = Date.now();
     this.frame(Math.min(dt, MAX_FRAME_DT));
     requestAnimationFrame(this.onFrame);
   };

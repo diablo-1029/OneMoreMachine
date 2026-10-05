@@ -98,7 +98,9 @@ export class App {
     if (this.starting) return;
     this.starting = true;
     try {
-      this.startSession(await this.saveManager.load());
+      const { state, savedAt } = await this.saveManager.load();
+      // A clock that has gone backwards gives a negative gap, which counts as no time away.
+      this.startSession(state, savedAt > 0 ? (Date.now() - savedAt) / 1000 : 0);
     } catch {
       // Any failure to restore ends here rather than in a broken or crashed game.
       this.starting = false;
@@ -110,10 +112,10 @@ export class App {
     if (this.starting) return;
     this.starting = true;
     await this.saveManager.clear();
-    this.startSession(createNewGame());
+    this.startSession(createNewGame(), 0);
   }
 
-  private startSession(state: GameState): void {
+  private startSession(state: GameState, awaySeconds: number): void {
     const { width, height } = state.factory.grid;
     if (width !== DEFAULT_GRID_SIZE || height !== DEFAULT_GRID_SIZE) this.buildWorld(width, height);
     this.camera.settle();
@@ -127,6 +129,7 @@ export class App {
       uiRoot: this.uiRoot,
       onSettingsChanged: (settings) => this.applySettings(settings),
       onGridChanged: (w, h) => this.buildWorld(w, h),
+      awaySeconds,
     });
     this.menu.hide();
 

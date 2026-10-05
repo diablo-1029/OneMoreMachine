@@ -160,6 +160,21 @@ export class Simulation {
     fillContracts(contracts, research);
   }
 
+  /**
+   * Credits sales that were not played out item by item (offline progress): the money, the
+   * totals, and progress on delivery contracts, just as if a Seller had taken each one.
+   */
+  creditSales(resourceId: string, count: number): void {
+    if (count <= 0) return;
+    this.state.economy.award(sellValue(resourceId) * count);
+    this.state.stats.sold[resourceId] = (this.state.stats.sold[resourceId] ?? 0) + count;
+    for (const contract of [...this.state.contracts.active]) {
+      if (contract.kind !== 'deliver' || contract.resourceId !== resourceId) continue;
+      contract.progress = Math.min(contract.progress + count, contract.target);
+      if (contract.progress >= contract.target) this.completeContract(contract);
+    }
+  }
+
   /** Trades a contract for a fresh one. Free, so an awkward order never blocks a slot. */
   swapContract(id: number): boolean {
     const { contracts, research } = this.state;

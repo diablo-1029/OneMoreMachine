@@ -3,6 +3,7 @@ import type { AudioManager, SoundId } from '../audio/AudioManager';
 import { describeContract } from '../core/contracts/Contracts';
 import { formatMoney } from '../core/economy/Currency';
 import { AUTOSAVE_INTERVAL, TICK_RATE } from '../core/game/Constants';
+import { applyOfflineProgress, mergeReports, OFFLINE, type OfflineReport } from '../core/game/OfflineProgress';
 import type { GameState } from '../core/game/GameState';
 import { Simulation } from '../core/game/Simulation';
 import { TickSystem, type GameSpeed } from '../core/game/TickSystem';
@@ -33,6 +34,7 @@ import { el } from '../ui/dom';
 import { HUD } from '../ui/HUD';
 import { MachinePanel } from '../ui/MachinePanel';
 import { NotificationSystem } from '../ui/NotificationSystem';
+import { OfflineReportPanel } from '../ui/OfflineReportPanel';
 import { ResearchPanel } from '../ui/ResearchPanel';
 import { SettingsPanel } from '../ui/SettingsPanel';
 import { StatsPanel } from '../ui/StatsPanel';
@@ -42,6 +44,8 @@ const PRODUCE_SOUNDS = new Set<string>(['miner', 'furnace', 'assembler']);
 /** Ticks allowed per rendered frame before the backlog is dropped. */
 const MAX_TICKS_PER_FRAME = 12;
 const UI_INTERVAL = 0.1;
+/** Background catch-up shorter than this in total is not worth a "welcome back" message. */
+const REPORT_AFTER_SECONDS = 300;
 /** Delay between a layout change and the save it triggers, so a belt drag saves once. */
 const SAVE_DEBOUNCE = 0.5;
 
@@ -56,6 +60,8 @@ export interface SessionContext {
   onSettingsChanged: (settings: GameSettings) => void;
   /** Rebuilds the floor, scenery and camera limits for a new grid size. */
   onGridChanged: (width: number, height: number) => void;
+  /** Seconds since the loaded save was written; 0 for a new factory. */
+  awaySeconds: number;
 }
 
 /**
@@ -87,6 +93,7 @@ export class GameSession {
   private readonly researchPanel: ResearchPanel;
   private readonly expansionPanel: ExpansionPanel;
   private readonly contractsPanel: ContractsPanel;
+  private readonly offlinePanel: OfflineReportPanel;
   private readonly notifications: NotificationSystem;
   private readonly debugRenderer: DebugRenderer | null = null;
   private readonly debugPanel: DebugPanel | null = null;
@@ -98,6 +105,8 @@ export class GameSession {
   private autosaveTimer = 0;
   private saveCountdown = -1;
   private resumeSpeed: 1 | 2 = 1;
+  /** Catch-up done while no frames were being drawn, to be reported when the player is back. */
+  private pendingReport: OfflineReport | null = null;
   private fps = 60;
   private readonly center = new THREE.Vector3();
 
@@ -108,6 +117,9 @@ export class GameSession {
     const { scene } = ctx.sceneManager;
     const { factory } = state;
     this.sim = new Simulation(state);
+    // Catch up on time away before anything is listening, so thousands of sales do not
+    // each fire a sound and a popup.
+    const offlineReport = applyOfflineProgress(this.sim, ctx.awaySeconds);
 
     this.effects = new Effects(scene);
     this.conveyors = new ConveyorRenderer(scene);
@@ -213,6 +225,7 @@ export class GameSession {
       });
     }
 
+    this.offlinePanel = new OfflineReportPanel(ctx.uiRoot, (open) => this.input.setEnabled(!open));
     this.wireEvents();
 
     // Bring the visuals in line with a loaded save.
@@ -222,6 +235,10 @@ export class GameSession {
     this.notifications.setHint(currentHint(state));
     this.hud.setSpeed(this.ticks.speed);
     this.updateUi();
+    if (offlineReport) {
+      this.offlinePanel.show(offlineReport);
+      this.save();
+    }
 
     window.addEventListener('pagehide', () => this.save());
     document.addEventListener('visibilitychange', () => {
@@ -383,6 +400,11 @@ export class GameSession {
   frame(realDt: number): void {
     const { factory } = this.sim.state;
     this.realTime += realDt;
+    if (this.pendingReport) {
+      const report = this.pendingReport;
+      this.pendingReport = null;
+      if (report.awaySeconds >= REPORT_AFTER_SECONDS && !this.offlinePanel.isOpen) this.offlinePanel.show(report);
+    }
     this.fps += (1 / Math.max(realDt, 0.001) - this.fps) * 0.05;
 
     this.input.update(realDt);
@@ -420,6 +442,18 @@ export class GameSession {
    */
   background(realDt: number): void {
     const { factory } = this.sim.state;
+    if (realDt >= OFFLINE.minSeconds) {
+      // A long gap with the page still open (the computer slept, or the browser froze the
+      // tab) is treated like time away. A paused game stays paused.
+      if (this.ticks.speed === 0) return;
+      const report = applyOfflineProgress(this.sim, realDt * this.ticks.speed);
+      this.items.resetTracks(factory);
+      // A throttled background tab catches up in many chunks; they are reported as one
+      // when the player is looking again (see frame).
+      if (report) this.pendingReport = mergeReports(this.pendingReport, report);
+      this.save();
+      return;
+    }
     const ran = this.ticks.advance(realDt, Math.ceil(realDt * TICK_RATE * 2) + 1, () => this.sim.tick());
     if (ran > 0) this.items.resetTracks(factory);
     this.updateSaving(realDt);
