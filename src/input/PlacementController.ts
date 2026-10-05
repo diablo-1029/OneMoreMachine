@@ -55,6 +55,8 @@ const FAILURE_MESSAGES: Record<CommandFailure, string> = {
   not_researched: 'Not researched yet',
   already_researched: 'Already researched',
   max_size: 'The factory is as large as it can get',
+  max_level: 'Already fully upgraded',
+  not_upgradable: 'That can’t be upgraded',
 };
 
 /**
@@ -259,6 +261,19 @@ export class PlacementController {
     this.selection = selection;
     this.refreshSelectionOutline();
     this.events.emit('selectionChanged', selection);
+  }
+
+  /** Buys the next upgrade level for a machine, with a puff of sparks to mark it. */
+  upgrade(machineId: string): void {
+    const result = this.sim.upgradeMachine(machineId);
+    if (!result.ok) return this.fail(result.reason);
+    const machine = result.value;
+    const { w, h } = rotatedSize(getMachineDef(machine.type), machine.rotation);
+    const x = cellCenterX(machine.gridX) + (w - 1) / 2;
+    const z = cellCenterZ(machine.gridY) + (h - 1) / 2;
+    this.audio.play('upgrade');
+    this.effects.sparks(x, 1.2, z, 16);
+    this.effects.dust(x, 0, z, 0.95, 10);
   }
 
   /** Changes what a machine makes and remembers the choice for the next one of its type. */

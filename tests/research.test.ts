@@ -37,7 +37,7 @@ describe('research rules', () => {
   it('every node unlocks something and refers only to real nodes', () => {
     const ids = new Set(RESEARCH_NODES.map((n) => n.id));
     for (const n of RESEARCH_NODES) {
-      expect(n.unlocks.machines.length + n.unlocks.recipes.length).toBeGreaterThan(0);
+      expect(n.unlocks.machines.length + n.unlocks.recipes.length + (n.unlocks.upgrades?.length ?? 0)).toBeGreaterThan(0);
       for (const required of n.requires) expect(ids.has(required)).toBe(true);
     }
   });

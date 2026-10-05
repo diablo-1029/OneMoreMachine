@@ -22,6 +22,16 @@ const MIGRATIONS: Record<number, (save: RawSave) => RawSave> = {
     save.research = [...LEGACY_RESEARCH];
     return save;
   },
+  // v5 added machine upgrade levels.
+  4: (save) => {
+    const factory = save.factory as { machines?: unknown } | undefined;
+    if (factory && Array.isArray(factory.machines)) {
+      for (const machine of factory.machines) {
+        if (typeof machine === 'object' && machine !== null) Object.assign(machine, { level: 1 });
+      }
+    }
+    return save;
+  },
   // v4 added contracts; the first offers are generated when the game starts.
   3: (save) => {
     save.contracts = { active: [], completed: 0, nextId: 1 };

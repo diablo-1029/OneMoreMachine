@@ -85,6 +85,7 @@ export class PlacementRenderer {
       ghost = createMachineVisual(type).root;
       ghost.traverse((object) => {
         if (object instanceof THREE.Mesh) {
+          // (Ghosts are never updated, so they never grow level studs of their own.)
           object.material = this.ghostMaterial;
           object.castShadow = false;
           object.receiveShadow = false;

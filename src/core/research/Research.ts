@@ -23,6 +23,7 @@ export function researchStatus(completed: readonly string[], node: ResearchNode)
 }
 
 function unlockedBy(completed: readonly string[], kind: 'machines' | 'recipes', starting: string[]): string[] {
+  // (Upgrade levels are looked up the other way round, by researchForUpgrade.)
   const unlocked = [...starting];
   for (const node of RESEARCH_NODES) {
     if (completed.includes(node.id)) unlocked.push(...node.unlocks[kind]);
@@ -37,6 +38,11 @@ export function unlockedMachines(completed: readonly string[]): string[] {
 
 export function unlockedRecipes(completed: readonly string[]): string[] {
   return unlockedBy(completed, 'recipes', STARTING_RECIPES);
+}
+
+/** The research node that makes an upgrade level available, if it is gated at all. */
+export function researchForUpgrade(level: number): ResearchNode | undefined {
+  return RESEARCH_NODES.find((node) => node.unlocks.upgrades?.includes(level));
 }
 
 /**

@@ -236,6 +236,10 @@ export class GameSession {
     events.on('machinePlaced', (machine) => this.machines.add(machine, true));
     events.on('machineRemoved', (machine) => this.machines.remove(machine));
     events.on('machineChanged', (machine) => this.machines.updateTransform(machine));
+    events.on('machineUpgraded', () => {
+      this.requestSave();
+      this.updateUi();
+    });
     events.on('machineProduced', ({ machine }) => {
       this.machines.notify(machine.id);
       if (PRODUCE_SOUNDS.has(machine.type)) audio.play(machine.type as SoundId);

@@ -28,6 +28,8 @@ export interface MachineState {
   lastInput: number;
   /** Storage: held resource ids, oldest first. */
   stored: string[];
+  /** Upgrade level, 1 = as built. Only crafting machines go higher. */
+  level: number;
 }
 
 export function createMachineState(
@@ -54,6 +56,7 @@ export function createMachineState(
     routeIndex: 0,
     lastInput: -1,
     stored: [],
+    level: 1,
   };
 }
 

@@ -1,5 +1,7 @@
 import * as THREE from 'three';
+import { getMachineDef, rotatedSize } from '../core/factory/MachineRegistry';
 import type { MachineState } from '../core/factory/MachineState';
+import { machineSpeed } from '../core/factory/MachineSystem';
 import type { MachineDefinition } from '../core/factory/MachineTypes';
 import { DIR_VECTORS } from '../core/grid/GridPosition';
 import type { Effects } from '../rendering/effects/Effects';
@@ -7,6 +9,10 @@ import { box } from '../rendering/GeometryUtils';
 import { PALETTE, VERTEX_MATERIAL } from '../rendering/Materials';
 
 const POP_DURATION = 0.28;
+
+/** Gold studs along the base that show a machine's upgrade level. */
+const PIP_GEOMETRY = new THREE.BoxGeometry(0.11, 0.07, 0.11);
+const PIP_MATERIAL = new THREE.MeshBasicMaterial({ color: 0xffd24a });
 
 /**
  * Geometry every machine shares: a base plate covering the footprint and a fitting at each
@@ -43,6 +49,10 @@ export abstract class MachineVisual {
   /** Jumps to 1 on a notable event (craft finished, item sold) and decays to 0. */
   protected pulse = 0;
   private popTime = POP_DURATION;
+  private readonly pips: THREE.Mesh[] = [];
+  private shownLevel = 1;
+  /** False until the first update, so a machine loaded already upgraded does not bounce. */
+  private started = false;
   private readonly scratch = new THREE.Vector3();
 
   constructor(staticGeometry: THREE.BufferGeometry) {
@@ -68,7 +78,30 @@ export abstract class MachineVisual {
     this.onNotify(effects);
   }
 
-  update(state: MachineState, dt: number, realDt: number, time: number, effects: Effects): void {
+  /** Shows one stud per level for upgraded machines; a standard machine has none. */
+  private showLevel(state: MachineState): void {
+    this.shownLevel = state.level;
+    const wanted = state.level > 1 ? state.level : 0;
+    const def = getMachineDef(state.type);
+    // The visual is modelled unrotated, so the studs sit on the definition's own south edge.
+    const { w, h } = rotatedSize(def, 0);
+    while (this.pips.length < wanted) {
+      const pip = new THREE.Mesh(PIP_GEOMETRY, PIP_MATERIAL);
+      pip.position.set(w / 2 - 0.22 - this.pips.length * 0.17, 0.135, h / 2 - 0.14);
+      this.root.add(pip);
+      this.pips.push(pip);
+    }
+    this.pips.forEach((pip, i) => (pip.visible = i < wanted));
+  }
+
+  update(state: MachineState, frameDt: number, realDt: number, time: number, effects: Effects): void {
+    if (state.level !== this.shownLevel) {
+      this.showLevel(state);
+      if (this.started) this.playPlacement();
+    }
+    this.started = true;
+    // Upgraded machines visibly run faster.
+    const dt = frameDt * machineSpeed(state);
     const busy = state.enabled && state.active ? 1 : 0;
     this.activity += (busy - this.activity) * Math.min(1, dt * 6);
     this.pulse = Math.max(0, this.pulse - dt * 2.5);

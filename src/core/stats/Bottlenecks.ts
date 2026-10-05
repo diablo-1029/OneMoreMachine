@@ -3,7 +3,7 @@ import { getResource } from '../../data/resources';
 import type { FactoryState } from '../factory/FactoryState';
 import { getMachineDef, worldPorts } from '../factory/MachineRegistry';
 import type { MachineState } from '../factory/MachineState';
-import { machineAccepts } from '../factory/MachineSystem';
+import { machineAccepts, machineSpeed } from '../factory/MachineSystem';
 import { oppositeDir } from '../grid/GridPosition';
 import type { GameState } from '../game/GameState';
 import type { Recipe } from '../recipes/Recipe';
@@ -115,7 +115,7 @@ export function analyzeBottlenecks(state: GameState, metrics: FactoryMetrics): B
     const shares = metrics.shares(machine.id);
     if (shares.observed < MIN_OBSERVED) continue;
     const recipe = getRecipe(machine.recipeId);
-    const craftsPerMinute = 60 / recipe.duration;
+    const craftsPerMinute = (60 / recipe.duration) * machineSpeed(machine);
 
     if (shares.waiting >= MIN_SHARE && recipe.inputs.length > 0) {
       // The scarcest input is the one the machine currently holds least of, relative to need.

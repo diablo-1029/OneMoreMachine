@@ -1,5 +1,5 @@
 import { fillContracts, type Contract } from '../contracts/Contracts';
-import { buildCost, refundValue, sellValue } from '../economy/Pricing';
+import { buildCost, machineRefund, refundValue, sellValue, upgradeCost } from '../economy/Pricing';
 import type { ConveyorState } from '../factory/ConveyorState';
 import {
   ConveyorNetwork,
@@ -17,7 +17,14 @@ import { FactoryMetrics } from '../stats/FactoryMetrics';
 import { rotateDir, type Direction } from '../grid/GridPosition';
 import { validatePlacement, type PlacementFailure } from '../grid/PlacementValidator';
 import { getRecipe, hasRecipe, recipesFor } from '../recipes/RecipeRegistry';
-import { getResearchNode, researchStatus, unlockedMachines, unlockedRecipes } from '../research/Research';
+import {
+  getResearchNode,
+  researchForUpgrade,
+  researchStatus,
+  unlockedMachines,
+  unlockedRecipes,
+} from '../research/Research';
+import { MAX_MACHINE_LEVEL, getUpgradeLevel, type UpgradeLevel } from '../../data/upgrades';
 import { nextExpansion, type ExpansionStep } from '../../data/expansion';
 import type { ResearchNode } from '../../data/research';
 import { TICK_DT } from './Constants';
@@ -30,6 +37,7 @@ export interface SimulationEvents {
   machineRemoved: MachineState;
   /** Rotation or enabled state changed. */
   machineChanged: MachineState;
+  machineUpgraded: MachineState;
   machineProduced: { machine: MachineState; recipeId: string };
   conveyorPlaced: ConveyorState;
   conveyorRemoved: ConveyorState;
@@ -52,7 +60,9 @@ export type CommandFailure =
   | 'invalid_recipe'
   | 'not_researched'
   | 'already_researched'
-  | 'max_size';
+  | 'max_size'
+  | 'max_level'
+  | 'not_upgradable';
 export type CommandResult<T> = { ok: true; value: T } | { ok: false; reason: CommandFailure };
 
 const fail = (reason: CommandFailure): { ok: false; reason: CommandFailure } => ({ ok: false, reason });
@@ -242,6 +252,39 @@ export class Simulation {
     return { ok: true, value: null };
   }
 
+  // ------------------------------------------------------------ upgrades
+
+  /**
+   * The next upgrade for a machine: what it would become, what it costs, and the research
+   * still needed before it can be bought (null when none). Null if it cannot be upgraded further.
+   */
+  upgradeOffer(machine: MachineState): { next: UpgradeLevel; cost: number; needsResearch: ResearchNode | null } | null {
+    if (getMachineDef(machine.type).behavior !== 'crafter' || machine.level >= MAX_MACHINE_LEVEL) return null;
+    const next = getUpgradeLevel(machine.level + 1);
+    const node = researchForUpgrade(next.level);
+    return {
+      next,
+      cost: upgradeCost(machine.type, next.level),
+      needsResearch: node && !this.state.research.includes(node.id) ? node : null,
+    };
+  }
+
+  /** Raises a machine one level. Work in progress carries on, just faster. */
+  upgradeMachine(id: string): CommandResult<MachineState> {
+    const machine = this.state.factory.machines.get(id);
+    if (!machine) return fail('not_found');
+    if (getMachineDef(machine.type).behavior !== 'crafter') return fail('not_upgradable');
+    const offer = this.upgradeOffer(machine);
+    if (!offer) return fail('max_level');
+    if (offer.needsResearch) return fail('not_researched');
+    if (!this.state.economy.spend(offer.cost)) return fail('cannot_afford');
+    machine.level = offer.next.level;
+    // Its efficiency so far was measured at the old speed.
+    this.metrics.forgetMachine(machine.id);
+    this.events.emit('machineUpgraded', machine);
+    return { ok: true, value: machine };
+  }
+
   // ----------------------------------------------------------- expansion
 
   /** The next floor size on offer, or null once the factory is as large as it can get. */
@@ -418,7 +461,7 @@ export class Simulation {
       const machine = factory.machines.get(occupant.id)!;
       factory.removeMachine(machine);
       this.metrics.forgetMachine(machine.id);
-      economy.refund(refundValue(machine.type));
+      economy.refund(machineRefund(machine.type, machine.level));
       this.topologyChanged();
       this.events.emit('machineRemoved', machine);
     } else {

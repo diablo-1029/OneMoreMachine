@@ -9,6 +9,8 @@ export interface ResearchNode {
     /** Build-toolbar entries (machine types). */
     machines: string[];
     recipes: string[];
+    /** Machine upgrade levels made available. */
+    upgrades?: number[];
   };
 }
 
@@ -40,6 +42,22 @@ export const RESEARCH_NODES: ResearchNode[] = [
     cost: 300,
     requires: ['logistics'],
     unlocks: { machines: ['storage'], recipes: [] },
+  },
+  {
+    id: 'machine_tuning',
+    name: 'Machine Tuning',
+    description: 'Upgrade Miners, Furnaces and Assemblers to Mk II: half as fast again in the same space.',
+    cost: 800,
+    requires: ['gear_assembly'],
+    unlocks: { machines: [], recipes: [], upgrades: [2] },
+  },
+  {
+    id: 'precision_engineering',
+    name: 'Precision Engineering',
+    description: 'Upgrade machines to Mk III: twice the speed of a standard machine.',
+    cost: 4000,
+    requires: ['machine_tuning'],
+    unlocks: { machines: [], recipes: [], upgrades: [3] },
   },
   {
     id: 'copper_mining',

@@ -107,6 +107,19 @@
   color: var(--muted);
 }
 
+.upgrade-button {
+  width: 100%;
+  margin-top: 14px;
+  font-size: 13px;
+}
+
+.upgrade-button:disabled {
+  background: var(--panel-raised);
+  border-color: var(--border);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
 /* Buttons for choosing what a machine makes. */
 .recipe-choices {
   gap: 5px;

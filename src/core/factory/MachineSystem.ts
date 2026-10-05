@@ -1,4 +1,5 @@
 import { BALANCE } from '../../data/balance';
+import { getUpgradeLevel } from '../../data/upgrades';
 import { getRecipe } from '../recipes/RecipeRegistry';
 import type { Recipe } from '../recipes/Recipe';
 import { getMachineDef } from './MachineRegistry';
@@ -13,6 +14,11 @@ export const STATUS_LABELS: Record<MachineStatus, string> = {
   waiting: 'Waiting for input',
   ready: 'Ready',
 };
+
+/** How many times faster than a newly built machine this one crafts. */
+export function machineSpeed(machine: MachineState): number {
+  return getUpgradeLevel(machine.level).speed;
+}
 
 function recipeOf(machine: MachineState): Recipe | null {
   return machine.recipeId ? getRecipe(machine.recipeId) : null;
@@ -49,16 +55,19 @@ export function updateCrafter(machine: MachineState, dt: number): Recipe | null 
 
   if (!machine.active && !tryStart(machine, recipe)) return null;
 
-  machine.progress += dt / recipe.duration;
+  machine.progress += (dt * machineSpeed(machine)) / recipe.duration;
   if (machine.progress < 1) return null;
 
   for (const output of recipe.outputs) {
     machine.outputInventory[output.resourceId] = (machine.outputInventory[output.resourceId] ?? 0) + output.amount;
   }
+  // Time left over after finishing counts towards the next craft, so speeds that do not divide
+  // evenly into ticks (an upgraded machine) still average out to exactly their rated output.
+  const carry = machine.progress - 1;
   machine.active = false;
   machine.progress = 0;
   // Begin the next craft straight away so a fully supplied machine never reads as idle between crafts.
-  tryStart(machine, recipe);
+  if (tryStart(machine, recipe)) machine.progress = carry;
   return recipe;
 }
 
@@ -86,5 +95,8 @@ export function nominalRatePerMinute(machine: MachineState): { resourceId: strin
   const recipe = recipeOf(machine);
   const output = recipe?.outputs[0];
   if (!recipe || !output) return null;
-  return { resourceId: output.resourceId, perMinute: (60 / recipe.duration) * output.amount };
+  return {
+    resourceId: output.resourceId,
+    perMinute: (60 / recipe.duration) * output.amount * machineSpeed(machine),
+  };
 }

@@ -5,6 +5,7 @@ import { getRecipe } from '../core/recipes/RecipeRegistry';
 import { missingRequirements, researchDepth, researchStatus } from '../core/research/Research';
 import { RESEARCH_NODES, type ResearchNode } from '../data/research';
 import { getResource } from '../data/resources';
+import { getUpgradeLevel } from '../data/upgrades';
 import { el, setText } from './dom';
 
 interface Card {
@@ -19,6 +20,7 @@ function unlockNames(node: ResearchNode): string[] {
   return [
     ...node.unlocks.machines.map((type) => getMachineDef(type).name),
     ...node.unlocks.recipes.map((id) => getResource(getRecipe(id).outputs[0].resourceId).name),
+    ...(node.unlocks.upgrades ?? []).map((level) => `${getUpgradeLevel(level).name} upgrades`),
   ];
 }
 

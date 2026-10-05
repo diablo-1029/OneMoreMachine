@@ -1,4 +1,5 @@
 import { isResource } from '../../data/resources';
+import { MAX_MACHINE_LEVEL } from '../../data/upgrades';
 import type { Contract, ContractState } from '../contracts/Contracts';
 import { Economy } from '../economy/Economy';
 import { FactoryState } from '../factory/FactoryState';
@@ -200,8 +201,11 @@ export function restoreGame(raw: unknown): GameState {
       routeIndex: Math.max(0, integer(entry.routeIndex ?? 0, 'Invalid route index')),
       lastInput: integer(entry.lastInput ?? -1, 'Invalid input index'),
       stored: [],
+      level: integer(entry.level ?? 1, 'Invalid machine level'),
     };
     const def = getMachineDef(type);
+    must(machine.level >= 1 && machine.level <= MAX_MACHINE_LEVEL, 'Invalid machine level');
+    must(machine.level === 1 || def.behavior === 'crafter', 'Only crafting machines can be upgraded');
 
     must(Array.isArray(entry.transit ?? []), 'Invalid transit list');
     for (const raw of (entry.transit ?? []) as unknown[]) {

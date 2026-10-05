@@ -1,7 +1,9 @@
 import type { ConveyorState } from '../core/factory/ConveyorState';
 import { getMachineDef } from '../core/factory/MachineRegistry';
 import type { Inventory, MachineState } from '../core/factory/MachineState';
-import { machineStatus, nominalRatePerMinute, STATUS_LABELS } from '../core/factory/MachineSystem';
+import { machineSpeed, machineStatus, nominalRatePerMinute, STATUS_LABELS } from '../core/factory/MachineSystem';
+import { formatMoney } from '../core/economy/Currency';
+import { getUpgradeLevel } from '../data/upgrades';
 import type { Simulation } from '../core/game/Simulation';
 import { DIR_NAMES } from '../core/grid/GridPosition';
 import { getRecipe, recipesFor } from '../core/recipes/RecipeRegistry';
@@ -17,7 +19,7 @@ function resourceChip(resourceId: string, amount: string): HTMLElement {
   return el('span', { class: 'chip' }, [dot, `${amount} ${resource.name}`]);
 }
 
-type RowKey = 'status' | 'makes' | 'recipe' | 'input' | 'output' | 'progress' | 'rate' | 'efficiency';
+type RowKey = 'status' | 'level' | 'makes' | 'recipe' | 'input' | 'output' | 'progress' | 'rate' | 'efficiency';
 
 /** Right-hand panel describing the selected machine or belt. */
 export class MachinePanel {
@@ -35,6 +37,8 @@ export class MachinePanel {
   private readonly efficiency: HTMLElement;
   private readonly efficiencyFill: HTMLElement;
   private readonly toggle: HTMLButtonElement;
+  private readonly level: HTMLElement;
+  private readonly upgradeButton: HTMLButtonElement;
   private readonly rows = new Map<RowKey, HTMLElement>();
   private selection: Selection = null;
   private signature = '';
@@ -67,6 +71,17 @@ export class MachinePanel {
       return node;
     };
 
+    this.level = el('div', { class: 'row-value' });
+    this.upgradeButton = el('button', {
+      class: 'button primary upgrade-button hidden',
+      attrs: { type: 'button' },
+      onClick: () => {
+        const machine = this.machine();
+        if (machine) this.placement.upgrade(machine.id);
+        this.update();
+      },
+    });
+
     this.toggle = el('button', {
       class: 'button',
       attrs: { type: 'button' },
@@ -91,6 +106,7 @@ export class MachinePanel {
       this.description,
       el('div', { class: 'rows' }, [
         row('status', 'Status', this.status),
+        row('level', 'Level', this.level),
         row('makes', 'Makes', this.makes),
         row('recipe', 'Recipe', this.recipe),
         row('input', this.inputLabel, this.input),
@@ -102,6 +118,7 @@ export class MachinePanel {
           this.efficiency,
         ])),
       ]),
+      this.upgradeButton,
       el('div', { class: 'panel-actions' }, [
         this.toggle,
         el('button', {
@@ -185,6 +202,7 @@ export class MachinePanel {
     this.status.dataset.status = status;
     setText(this.toggle, machine.enabled ? 'Disable' : 'Enable');
 
+    if (def.behavior !== 'crafter') this.upgradeButton.classList.add('hidden');
     switch (def.behavior) {
       case 'crafter':
         this.showCrafter(machine);
@@ -220,8 +238,22 @@ export class MachinePanel {
     const def = getMachineDef(machine.type);
     // Machines with a choice of products get a picker; the rest just show their recipe.
     const choices = recipesFor(machine.type).filter((r) => this.sim.isRecipeAvailable(r.id));
-    const rows: RowKey[] = ['status', 'recipe', 'input', 'output', 'progress', 'rate', 'efficiency'];
-    if (choices.length > 1) rows.splice(1, 0, 'makes');
+    const rows: RowKey[] = ['status', 'level', 'recipe', 'input', 'output', 'progress', 'rate', 'efficiency'];
+    if (choices.length > 1) rows.splice(2, 0, 'makes');
+
+    const speed = machineSpeed(machine);
+    setText(this.level, `${getUpgradeLevel(machine.level).name} · ${speed === 1 ? 'standard speed' : `${speed}× speed`}`);
+    const offer = this.sim.upgradeOffer(machine);
+    this.upgradeButton.classList.toggle('hidden', offer === null);
+    if (offer) {
+      if (offer.needsResearch) {
+        setText(this.upgradeButton, `${offer.next.name} needs ${offer.needsResearch.name}`);
+        this.upgradeButton.disabled = true;
+      } else {
+        setText(this.upgradeButton, `Upgrade to ${offer.next.name} (${offer.next.speed}× speed) · ${formatMoney(offer.cost)}`);
+        this.upgradeButton.disabled = !this.sim.state.economy.canAfford(offer.cost);
+      }
+    }
     this.showRows(rows);
     setText(this.inputLabel, 'Input');
 
@@ -292,6 +324,7 @@ export class MachinePanel {
   }
 
   private showConveyor(conveyor: ConveyorState): void {
+    this.upgradeButton.classList.add('hidden');
     this.showHeader(conveyor.id, CONVEYOR_INFO.name, CONVEYOR_INFO.description, false);
     this.showRows(['status', 'input', 'rate']);
     setText(this.status, `Heading ${DIR_NAMES[conveyor.direction]}`);
