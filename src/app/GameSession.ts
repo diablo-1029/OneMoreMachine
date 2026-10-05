@@ -53,6 +53,7 @@ import { PrestigePanel } from '../ui/PrestigePanel';
 import { ResearchPanel } from '../ui/ResearchPanel';
 import { SettingsPanel } from '../ui/SettingsPanel';
 import { StatsPanel } from '../ui/StatsPanel';
+import { TouchControls } from '../ui/TouchControls';
 
 /** Machine types that make a sound when they finish a craft. */
 const PRODUCE_SOUNDS = new Set<string>(['miner', 'furnace', 'assembler']);
@@ -258,6 +259,7 @@ export class GameSession {
     this.stats = new StatsPanel(ctx.uiRoot, (machineId) => this.focusMachine(machineId));
     this.toolbar = new BuildToolbar(ctx.uiRoot, this.placement, click);
     new KeyHints(ctx.uiRoot, this.placement);
+    new TouchControls(ctx.uiRoot, this.placement, ctx.camera, click);
     this.hoverCard = new HoverCard(ctx.uiRoot, this.sim);
     this.machinePanel = new MachinePanel(ctx.uiRoot, this.sim, this.placement, click);
     this.settingsPanel = new SettingsPanel(ctx.uiRoot, ctx.settings, {

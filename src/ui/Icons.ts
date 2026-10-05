@@ -111,6 +111,23 @@ export const ICONS: Record<string, string> = {
   delete: svg(
     '<path d="M7 10h18M13 10V7h6v3M9.500 10l1 16h11l1-16M14 14v8M18 14v8" stroke="#f87171" stroke-width="2.2"/>',
   ),
+  rotate: svg(
+    '<path d="M25 16a9 9 0 11-3-6.700" stroke="currentColor" stroke-width="2.8"/>' +
+      '<path d="M23 4v6h-6" stroke="currentColor" stroke-width="2.8"/>',
+  ),
+  cancel: svg('<path d="M9 9l14 14M23 9L9 23" stroke="currentColor" stroke-width="3"/>'),
+  viewLeft: svg(
+    '<path d="M26 20a11 11 0 00-19-6" stroke="currentColor" stroke-width="2.8"/>' +
+      '<path d="M6 7v8h8" stroke="currentColor" stroke-width="2.8"/>',
+  ),
+  viewRight: svg(
+    '<path d="M6 20a11 11 0 0119-6" stroke="currentColor" stroke-width="2.8"/>' +
+      '<path d="M26 7v8h-8" stroke="currentColor" stroke-width="2.8"/>',
+  ),
+  center: svg(
+    '<circle cx="16" cy="16" r="6" stroke="currentColor" stroke-width="2.6"/>' +
+      '<path d="M16 4v5M16 23v5M4 16h5M23 16h5" stroke="currentColor" stroke-width="2.6"/>',
+  ),
   pause: svg('<path d="M11 8v16M21 8v16" stroke="currentColor" stroke-width="4"/>'),
   settings: svg(
     '<circle cx="16" cy="16" r="4" stroke="currentColor" stroke-width="2.4"/>' +

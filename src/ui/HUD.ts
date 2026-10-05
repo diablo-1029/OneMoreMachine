@@ -25,6 +25,8 @@ export type HudPanel = 'production' | 'contracts' | 'research' | 'floor' | 'blue
 
 /** Below this width (in the UI layer's own pixels) the navigation strip drops its words. */
 const COMPACT_BELOW = 1400;
+/** Below this width speed and settings no longer fit beside the status strip and take a row of their own. */
+const STACKED_BELOW = 520;
 /** How long a newly arrived control stays highlighted. */
 const HIGHLIGHT_MS = 2600;
 /** Share of the remaining difference the money readout covers per second while counting. */
@@ -170,6 +172,7 @@ export class HUD {
   private trackSize(topbar: HTMLElement): void {
     const publish = () => {
       topbar.classList.toggle('compact', this.root.clientWidth < COMPACT_BELOW);
+      topbar.classList.toggle('stacked', this.root.clientWidth < STACKED_BELOW);
       this.root.style.setProperty('--topbar-bottom', `${topbar.offsetTop + topbar.offsetHeight}px`);
     };
     const observer = new ResizeObserver(publish);

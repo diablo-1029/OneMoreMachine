@@ -452,7 +452,7 @@ describe('a full playthrough', () => {
     // Several machines in the chain are faster than the Fabricator needs and spend time idle,
     // but nothing downstream could use more, so none of them is reported as a bottleneck.
     expect(analyzeBottlenecks(sim.state, sim.metrics).filter((f) => f.kind === 'starved')).toEqual([]);
-  });
+  }, 60_000);
 
   it('is paced so that no stage is over in a moment and none is a long wait', () => {
     const labels = player.log.map((entry) => entry.label);

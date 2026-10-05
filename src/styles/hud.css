@@ -29,6 +29,15 @@
   flex: none;
 }
 
+/* Phone widths: speed and settings drop below the rest, still on the right. */
+.topbar.stacked {
+  flex-wrap: wrap;
+}
+
+.topbar.stacked .topbar-group:last-child {
+  margin-left: auto;
+}
+
 .pill,
 .statusbar,
 .nav {
@@ -429,8 +438,11 @@ button.status-item:hover {
 .hint {
   position: absolute;
   top: calc(var(--topbar-bottom, 58px) + 10px);
-  left: 50%;
-  transform: translateX(-50%);
+  /* Centred by auto margins; left: 50% would cap the width at half the window. */
+  left: 14px;
+  right: 14px;
+  width: fit-content;
+  margin: 0 auto;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -462,7 +474,7 @@ button.status-item:hover {
 @keyframes hint-in {
   from {
     opacity: 0;
-    transform: translate(-50%, -8px);
+    transform: translateY(-8px);
   }
 }
 
@@ -625,8 +637,10 @@ button.status-item:hover {
 .keyhints {
   position: absolute;
   bottom: calc(var(--toolbar-height, 86px) + 26px);
-  left: 50%;
-  transform: translateX(-50%);
+  left: 8px;
+  right: 8px;
+  width: fit-content;
+  margin: 0 auto;
   display: flex;
   gap: 14px;
   padding: 5px 14px;
@@ -651,7 +665,94 @@ button.status-item:hover {
 @keyframes keyhints-in {
   from {
     opacity: 0;
-    transform: translate(-50%, 6px);
+    transform: translateY(6px);
+  }
+}
+
+/* --------------------------------------------------------- touch controls */
+
+/* Rotate, cancel and view buttons for players without a keyboard. See TouchControls. */
+.touch-controls {
+  position: absolute;
+  right: 12px;
+  bottom: calc(var(--toolbar-height, 86px) + 30px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 28px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
+
+.touch-button {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--panel-raised);
+  color: var(--text);
+  transition:
+    background var(--dur-fast),
+    transform var(--dur-fast),
+    opacity var(--dur-fast);
+}
+
+.touch-button svg {
+  width: 24px;
+  height: 24px;
+}
+
+.touch-button:active:not(:disabled) {
+  background: var(--panel-hover);
+  transform: scale(0.92);
+}
+
+.touch-button:disabled {
+  opacity: 0.35;
+}
+
+.touch-divider {
+  width: 24px;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Keys mean nothing to a player on a touch screen, so the hints for them step aside. */
+:root[data-touch='true'] .keyhints,
+:root[data-touch='true'] .tool-key {
+  display: none;
+}
+
+/* Fingers need bigger targets than a cursor does. */
+@media (pointer: coarse) {
+  .pill,
+  .statusbar,
+  .nav {
+    height: 50px;
+  }
+
+  .status-item,
+  .nav-button,
+  .speed-button {
+    height: 40px;
+  }
+
+  .speed-button {
+    min-width: 42px;
+  }
+
+  .pill.icon-button {
+    width: 50px;
+  }
+
+  .topbar.compact .nav-button:not(.active) {
+    padding: 0 10px;
   }
 }
 
@@ -660,12 +761,13 @@ button.status-item:hover {
 .toasts {
   position: absolute;
   bottom: calc(var(--toolbar-height, 86px) + 66px);
-  left: 50%;
-  transform: translateX(-50%);
+  left: 12px;
+  right: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  text-align: center;
   pointer-events: none !important;
 }
 
@@ -677,6 +779,7 @@ button.status-item:hover {
   box-shadow: var(--shadow);
   font-size: 14px;
   font-weight: 700;
+  line-height: 1.35;
   animation: toast-in 0.18s var(--ease-out);
   transition:
     opacity 0.25s,

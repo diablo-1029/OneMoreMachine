@@ -16,6 +16,8 @@ export type TooltipSource = string | TooltipContent | (() => string | TooltipCon
 /** Pause before a tooltip appears, and how long after one closes the next appears at once. */
 const SHOW_DELAY_MS = 380;
 const WARM_MS = 400;
+/** How long a finger must rest on a control for its tooltip, since a finger cannot hover. */
+const LONG_PRESS_MS = 500;
 const GAP = 10;
 const MARGIN = 8;
 
@@ -138,6 +140,33 @@ export function attachTooltip(node: HTMLElement, source: TooltipSource): void {
   node.addEventListener('pointerenter', (event) => {
     if (event.pointerType !== 'touch') schedule(node);
   });
+  // By touch: press and hold to read about a control. Letting go then does not press it.
+  let heldOpen = false;
+  node.addEventListener('pointerdown', (event) => {
+    if (event.pointerType !== 'touch') return;
+    heldOpen = false;
+    window.clearTimeout(timer);
+    timer = window.setTimeout(() => {
+      heldOpen = true;
+      show(node);
+    }, LONG_PRESS_MS);
+  });
+  const release = () => {
+    window.clearTimeout(timer);
+    if (heldOpen) window.setTimeout(() => current === node && hide(), 1800);
+  };
+  node.addEventListener('pointerup', release);
+  node.addEventListener('pointercancel', release);
+  node.addEventListener(
+    'click',
+    (event) => {
+      if (!heldOpen) return;
+      heldOpen = false;
+      event.stopImmediatePropagation();
+      event.preventDefault();
+    },
+    true,
+  );
   node.addEventListener('pointerleave', () => {
     if (current === node || timer) hide();
     window.clearTimeout(timer);

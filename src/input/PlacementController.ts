@@ -297,6 +297,13 @@ export class PlacementController {
     this.refreshHover();
   }
 
+  /** Drops a stroke in progress without finishing it: belts already laid stay, a copy is not taken. */
+  abortDrag(): void {
+    this.dragCell = null;
+    this.copyStart = null;
+    this.refreshHover();
+  }
+
   primaryUp(): void {
     this.dragCell = null;
     if (this.tool.mode !== 'copy' || !this.copyStart || !this.lastNdc) return;
