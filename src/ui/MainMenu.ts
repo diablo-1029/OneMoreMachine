@@ -35,6 +35,7 @@ export class MainMenu {
         this.message,
         this.heading,
         this.buttons,
+        el('p', { class: 'menu-version', text: `Version ${__APP_VERSION__}` }),
       ]),
     ]);
     root.append(this.overlay);

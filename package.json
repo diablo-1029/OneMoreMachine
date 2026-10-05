@@ -1,14 +1,16 @@
 {
   "name": "one-more-machine",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "A browser-based 3D factory automation game: build it, optimize it, watch it work.",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src",
+    "lint": "eslint src tests",
     "test": "vitest run"
   },
   "dependencies": {

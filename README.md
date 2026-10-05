@@ -2,13 +2,28 @@
 
 > Build it. Optimize it. Watch it work.
 
+**[Play it in your browser](https://diablo-1029.github.io/OneMoreMachine/)** — nothing to install, and it saves as you go.
+
+![A factory of miners, furnaces and assemblers feeding gears along conveyors](docs/screenshot.jpg)
+
 A browser-based 3D factory automation game. Place machines, join them with conveyors, watch
 items move, find the bottleneck, and fix it — usually with one more machine.
 
 Built with Vite, TypeScript and Three.js. There are no art or audio assets: every model is
 assembled from primitives in code and every sound is synthesised with Web Audio.
 
-## Running it
+## Playing
+
+Miners dig ore, Furnaces and Assemblers turn it into things worth more, and Sellers turn
+those into money. Conveyors join them up. Spend the money on more machines, research and
+floor space; when something backs up or sits idle, find the bottleneck and fix it. The game
+has a short walkthrough and a *How to play* page on its menu.
+
+It runs in current versions of Chrome, Edge, Firefox and Safari, with a mouse and keyboard
+or by touch on a tablet. Phones work but are cramped. Progress is stored in the browser;
+*Settings → Download save* gives you a file to keep or move to another device.
+
+## Running it from source
 
 ```bash
 npm install
@@ -96,8 +111,22 @@ Two rules hold everything together:
 2. **Content is data.** A new resource, recipe, machine, research node or achievement is an
    entry in `src/data/`, plus a model if it needs one.
 
+## Releasing
+
+Every push runs the checks in `.github/workflows/ci.yml`. Pushes to `main` are also built and
+published to GitHub Pages by `deploy.yml`, once the repository is public and Pages is switched
+on (Settings → Pages → Source: GitHub Actions). The build uses relative paths, so `dist/` can
+equally be zipped and uploaded elsewhere, such as itch.io.
+
 ## Saves
 
 The game autosaves to IndexedDB with a mirror in localStorage. Saves carry a version number
 and are upgraded step by step on load (`src/core/save/Migration.ts`); every loaded save is
 validated, and one that cannot be restored is reported rather than crashing the game.
+
+A save can be downloaded as a file and loaded again from the menu or Settings; a loaded file
+goes through the same upgrade and validation as any other save.
+
+## License
+
+[MIT](LICENSE)
