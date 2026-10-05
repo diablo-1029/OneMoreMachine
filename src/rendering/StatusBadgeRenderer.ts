@@ -3,7 +3,7 @@ import type { FactoryState } from '../core/factory/FactoryState';
 import type { FactoryMetrics, StallKind } from '../core/stats/FactoryMetrics';
 import { machineCenter } from './MachineRenderer';
 
-const MAX_BADGES = 128;
+const MAX_BADGES = 256;
 /** A machine must be stalled this long before it gets a badge, so brief gaps do not flicker. */
 const STALL_SECONDS = 3;
 /** Above the product marker that floats over each machine. */

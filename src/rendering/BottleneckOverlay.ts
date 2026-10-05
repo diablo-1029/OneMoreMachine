@@ -5,7 +5,7 @@ import type { FactoryMetrics } from '../core/stats/FactoryMetrics';
 import { machineCenter } from './MachineRenderer';
 import { cellCenterX, cellCenterZ } from './WorldMapping';
 
-const MAX_MARKS = 1200;
+const MAX_MARKS = 1300;
 const REFRESH_SECONDS = 0.25;
 const GOOD = new THREE.Color(0x4ade80);
 const FAIR = new THREE.Color(0xfbbf24);
