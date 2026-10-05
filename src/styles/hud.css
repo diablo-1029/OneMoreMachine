@@ -471,6 +471,24 @@ button.status-item:hover {
   letter-spacing: 0.04em;
 }
 
+/* The banner lets clicks through to the factory; only its close button takes them. */
+.hint-close {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  margin: -4px -8px -4px 0;
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--muted);
+  pointer-events: auto;
+}
+
+.hint-close:hover {
+  background: var(--panel-hover);
+  color: var(--text);
+}
+
 @keyframes hint-in {
   from {
     opacity: 0;

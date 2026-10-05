@@ -3,6 +3,7 @@ import { MACHINE_DEFINITIONS } from '../../data/machines';
 import { LEGACY_RESEARCH } from '../../data/research';
 import { getUpgradeLevel } from '../../data/upgrades';
 import { SAVE_VERSION } from '../game/Constants';
+import { allTipIds, TUTORIAL_STEPS } from '../game/Tutorial';
 import { SaveError } from './SaveSchema';
 
 type RawSave = Record<string, unknown>;
@@ -23,6 +24,13 @@ const MIGRATIONS: Record<number, (save: RawSave) => RawSave> = {
   // v3 added research. Everything it gates in older saves was free before, so grant it.
   2: (save) => {
     save.research = [...LEGACY_RESEARCH];
+    return save;
+  },
+  // v10 added one-time tips for what the walkthrough does not cover. A player who had
+  // already finished the walkthrough has found their own way and is not shown them.
+  9: (save) => {
+    const finished = typeof save.tutorialStep === 'number' && save.tutorialStep >= TUTORIAL_STEPS.length;
+    save.seenTips = finished ? allTipIds() : [];
     return save;
   },
   // v9 added prestige.

@@ -47,5 +47,7 @@ export function createPrestigeGame(current: GameState, environmentId: string): G
   next.achievements = [...current.achievements];
   // The tutorial has done its job by now.
   next.tutorialStep = current.tutorialStep;
+  // Tips are about learning the game, not about one factory, so they are not repeated.
+  next.seenTips = [...current.seenTips];
   return next;
 }

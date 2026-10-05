@@ -16,4 +16,4 @@ export const DEFAULT_GRID_SIZE = 12;
 /** Seconds between autosaves. */
 export const AUTOSAVE_INTERVAL = 30;
 
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 10;

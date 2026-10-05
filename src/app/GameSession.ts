@@ -10,7 +10,9 @@ import type { GameState } from '../core/game/GameState';
 import { createPrestigeGame } from '../core/game/Prestige';
 import { Simulation } from '../core/game/Simulation';
 import { TickSystem, type GameSpeed } from '../core/game/TickSystem';
-import { currentHint } from '../core/game/Tutorial';
+import { starsForEarnings } from '../core/game/Prestige';
+import { currentHint, currentTip, TIPS } from '../core/game/Tutorial';
+import { analyzeBottlenecks } from '../core/stats/Bottlenecks';
 import type { SaveManager } from '../core/save/SaveManager';
 import type { GameSettings } from '../core/save/SaveSchema';
 import { restoreGame, serializeGame } from '../core/save/Serializer';
@@ -64,6 +66,8 @@ const UI_INTERVAL = 0.1;
 const REPORT_AFTER_SECONDS = 300;
 /** Delay between a layout change and the save it triggers, so a belt drag saves once. */
 const SAVE_DEBOUNCE = 0.5;
+/** How long a tip stays up if the player neither closes it nor acts on it. */
+const TIP_SECONDS = 60;
 
 export interface SessionContext {
   renderer: Renderer;
@@ -78,6 +82,8 @@ export interface SessionContext {
   onGridChanged: (width: number, height: number) => void;
   /** Seconds since the loaded save was written; 0 for a new factory. */
   awaySeconds: number;
+  /** Opens the How to play page. */
+  onHelp: () => void;
   /** Asks for a save file and, if the player goes through with it, replaces this factory. */
   onLoadSaveFile: () => void;
   /** Replaces this factory with a newly founded one and restarts the game on it. */
@@ -135,6 +141,9 @@ export class GameSession {
   private resumeSpeed: 1 | 2 = 1;
   /** Catch-up done while no frames were being drawn, to be reported when the player is back. */
   private pendingReport: OfflineReport | null = null;
+  /** The tip on show, and how long it has been there. */
+  private shownTip: { id: string; seconds: number } | null = null;
+  private shownHint: string | null = null;
   private fps = 60;
   private readonly center = new THREE.Vector3();
 
@@ -226,6 +235,7 @@ export class GameSession {
       openPrestige: () => {
         click();
         this.prestigePanel.open(this.hud.anchor('prestige'));
+        this.dismissTip('prestige');
       },
     });
     this.prestigePanel = new PrestigePanel(
@@ -282,6 +292,7 @@ export class GameSession {
         downloadText(saveFileName(), JSON.stringify(serializeGame(this.sim.state, ctx.settings)));
       },
       onLoadSave: ctx.onLoadSaveFile,
+      onHelp: ctx.onHelp,
     });
     // Told once; a toast every half minute would only be noise.
     let warned = false;
@@ -308,7 +319,6 @@ export class GameSession {
     for (const machine of factory.machines.values()) this.machines.add(machine, false);
     this.conveyors.invalidate();
     this.items.resetTracks(factory);
-    this.notifications.setHint(currentHint(state));
     this.hud.setSpeed(this.ticks.speed);
     this.updateUi();
     if (offlineReport) {
@@ -330,6 +340,7 @@ export class GameSession {
     events.on('machineRemoved', (machine) => this.machines.remove(machine));
     events.on('machineChanged', (machine) => this.machines.updateTransform(machine));
     events.on('machineUpgraded', () => {
+      this.dismissTip('upgrades');
       this.requestSave();
       this.updateUi();
     });
@@ -349,7 +360,7 @@ export class GameSession {
       this.debugRenderer?.refresh(this.sim.state.factory);
       this.requestSave();
     });
-    events.on('tutorialAdvanced', () => this.notifications.setHint(currentHint(this.sim.state)));
+    events.on('tutorialAdvanced', () => this.updateHint(0));
     events.on('factoryExpanded', ({ width, height }) => {
       // Entities keep their place on the ground; only the floor around them grows.
       this.ctx.onGridChanged(width, height);
@@ -396,6 +407,8 @@ export class GameSession {
       if (other !== panel) other.hide();
     }
     panel.toggle(this.hud.anchor(name));
+    // Opening the panel a tip points at is as good as reading it.
+    this.dismissTip(name === 'floor' ? 'expansion' : name === 'production' ? 'bottlenecks' : name);
     this.updateUi();
   }
 
@@ -443,6 +456,7 @@ export class GameSession {
 
   toggleBottleneckView(): void {
     this.overlay.setEnabled(!this.overlay.isEnabled);
+    this.dismissTip('bottlenecks');
     this.hud.setBottleneckView(this.overlay.isEnabled);
   }
 
@@ -506,6 +520,11 @@ export class GameSession {
       return;
     }
     this.save();
+  }
+
+  /** Switches the game's own mouse and keyboard handling off while something covers it. */
+  setInputEnabled(enabled: boolean): void {
+    if (!this.retired) this.input.setEnabled(enabled);
   }
 
   /** Stops this session from saving or taking input, for good: another copy of the factory has taken over. */
@@ -613,6 +632,53 @@ export class GameSession {
     this.updateSaving(realDt);
   }
 
+  private dismissTip(id: string): void {
+    this.sim.dismissTip(id);
+    if (this.shownTip?.id === id) this.updateHint(0);
+  }
+
+  /**
+   * Keeps the banner under the top bar current: the walkthrough step while there is one,
+   * otherwise a tip whose moment has come. A tip left alone puts itself away after a while.
+   */
+  private updateHint(seconds: number): void {
+    const { state } = this.sim;
+    const step = currentHint(state);
+    if (step !== null) {
+      this.shownTip = null;
+      if (step !== this.shownHint) this.notifications.setHint(step);
+      this.shownHint = step;
+      return;
+    }
+    if (this.shownTip) {
+      this.shownTip.seconds += seconds;
+      if (this.shownTip.seconds >= TIP_SECONDS) this.sim.dismissTip(this.shownTip.id);
+    }
+    // Nothing left to say: the usual state of an established factory.
+    if (!this.shownTip && this.shownHint === null && state.seenTips.length >= TIPS.length) return;
+    const next = this.sim.nextExpansion();
+    const tip = currentTip(state, {
+      // The one costly check, so it is skipped once its tip has been seen.
+      hasBottleneck:
+        !state.seenTips.includes('bottlenecks') &&
+        state.factory.machines.size >= 4 &&
+        analyzeBottlenecks(state, this.sim.metrics).length > 0,
+      itemsSold: Object.values(state.stats.sold).reduce((sum, count) => sum + count, 0),
+      powerShort: this.sim.power.demand > this.sim.power.supply,
+      canAffordExpansion: next !== null && state.economy.canAfford(next.cost),
+      research: state.research,
+      starsAvailable: starsForEarnings(state.economy.totalEarned),
+    });
+    const text = tip?.text ?? null;
+    if (text !== this.shownHint) {
+      this.shownTip = tip ? { id: tip.id, seconds: 0 } : null;
+      this.notifications.setHint(text, tip ? () => this.dismissTip(tip.id) : null);
+      this.shownHint = text;
+      // A tip that has been put away should stay away after a reload.
+      if (state.seenTips.length > 0) this.requestSave();
+    }
+  }
+
   /** The gauge around the selected machine reads the share of its time it has spent working. */
   private updateGauge(): void {
     const selection = this.placement.currentSelection;
@@ -670,6 +736,7 @@ export class GameSession {
     const { state } = this.sim;
     this.updateHud();
     this.updateGauge();
+    this.updateHint(UI_INTERVAL);
     this.hud.update(state);
     this.hud.setPower(this.sim.power.demand, this.sim.power.supply);
     this.toolbar.update(state);

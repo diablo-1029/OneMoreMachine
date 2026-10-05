@@ -7,13 +7,23 @@ export class NotificationSystem {
   private readonly toasts: HTMLElement;
   private readonly hint: HTMLElement;
   private readonly hintText: HTMLElement;
+  private readonly hintBadge: HTMLElement;
+  private readonly hintClose: HTMLButtonElement;
+  private onHintClose: (() => void) | null = null;
   private lastToast = '';
   private lastToastAt = 0;
 
   constructor(root: HTMLElement) {
     this.toasts = el('div', { class: 'toasts', attrs: { 'aria-live': 'polite' } });
     this.hintText = el('span');
-    this.hint = el('div', { class: 'hint hidden' }, [el('span', { class: 'hint-badge', text: 'Next' }), this.hintText]);
+    this.hintBadge = el('span', { class: 'hint-badge', text: 'Next' });
+    this.hintClose = el('button', {
+      class: 'hint-close hidden',
+      text: '×',
+      attrs: { type: 'button', 'aria-label': 'Close tip' },
+      onClick: () => this.onHintClose?.(),
+    });
+    this.hint = el('div', { class: 'hint hidden', attrs: { role: 'status' } }, [this.hintBadge, this.hintText, this.hintClose]);
     root.append(this.hint, this.toasts);
   }
 
@@ -33,9 +43,15 @@ export class NotificationSystem {
     }, seconds * 1000);
   }
 
-  /** Shows the current tutorial hint, or hides the banner when there is none. */
-  setHint(text: string | null): void {
+  /**
+   * Shows the banner under the top bar, or hides it when there is nothing to say. A walkthrough
+   * step ("Next") stays until it is done; a tip can be closed, which calls `onClose`.
+   */
+  setHint(text: string | null, onClose: (() => void) | null = null): void {
     this.hint.classList.toggle('hidden', text === null);
+    this.onHintClose = onClose;
+    this.hintClose.classList.toggle('hidden', onClose === null);
+    setText(this.hintBadge, onClose ? 'Tip' : 'Next');
     if (text !== null) setText(this.hintText, text);
   }
 }

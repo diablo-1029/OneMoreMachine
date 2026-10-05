@@ -20,6 +20,8 @@ export interface GameState {
   stats: GameStats;
   /** Index of the current tutorial hint; past the end means the tutorial is finished. */
   tutorialStep: number;
+  /** Ids of the one-time tips that have been shown and put away. */
+  seenTips: string[];
   /** Ids of completed research nodes; what can be built and made follows from these. */
   research: string[];
   contracts: ContractState;
@@ -38,6 +40,7 @@ export function createNewGame(environment: string = DEFAULT_ENVIRONMENT): GameSt
     simTime: 0,
     stats: { produced: {}, sold: {} },
     tutorialStep: 0,
+    seenTips: [],
     research: [],
     contracts: createContractState(),
     power: { baseSupply: BALANCE.power.baseSupply },

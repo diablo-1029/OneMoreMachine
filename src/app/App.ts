@@ -15,6 +15,7 @@ import { SaveError } from '../core/save/SaveSchema';
 import { el } from '../ui/dom';
 import { downloadText, pickTextFile, saveFileName, showNotice } from '../ui/Notice';
 import { reducedMotion, setMotionPreference, setUiScale } from '../ui/preferences';
+import { HelpPanel } from '../ui/HelpPanel';
 import { MainMenu } from '../ui/MainMenu';
 import { SettingsPanel } from '../ui/SettingsPanel';
 import { GameLoop } from './GameLoop';
@@ -40,6 +41,7 @@ export class App {
   private grid!: GridRenderer;
   private environment!: EnvironmentRenderer;
   private menu!: MainMenu;
+  private help!: HelpPanel;
   private session: GameSession | null = null;
   private starting = false;
   /** The environment currently drawn: the chosen one in play, or the one being previewed on the menu. */
@@ -82,14 +84,18 @@ export class App {
     window.addEventListener('pointerdown', unlock);
     window.addEventListener('keydown', unlock);
 
+    // One How to play page serves the menu and the game; in play it holds the controls back.
+    this.help = new HelpPanel(this.uiRoot, (open) => this.session?.setInputEnabled(!open));
     const menuSettings = new SettingsPanel(this.uiRoot, this.settings, {
       onChange: (settings) => this.applySettings(settings),
+      onHelp: () => this.help.open(),
     });
     this.menu = new MainMenu(this.uiRoot, {
       onContinue: () => void this.continueGame(),
       onNewFactory: (environmentId) => void this.newGame(environmentId),
       onPreviewEnvironment: (environmentId) => this.showEnvironment(environmentId),
       onSettings: () => menuSettings.open(),
+      onHelp: () => this.help.open(),
       onLoadFile: () => void this.loadSaveFile(),
     });
     this.menu.show(await this.saveManager.hasSave());
@@ -259,6 +265,7 @@ export class App {
       onGridChanged: (w, h) => this.buildWorld(w, h),
       awaySeconds,
       onLoadSaveFile: () => void this.loadSaveFile(),
+      onHelp: () => this.help.open(),
       onPrestige: (next) => {
         // The page is reloaded onto the new factory; a session is only ever built once per page.
         this.saveManager.save(next, this.settings);

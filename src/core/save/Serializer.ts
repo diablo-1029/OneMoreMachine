@@ -16,6 +16,7 @@ import { validatePlacement } from '../grid/PlacementValidator';
 import { hasRecipe } from '../recipes/RecipeRegistry';
 import { isResearchId } from '../research/Research';
 import { migrateSave } from './Migration';
+import { isTipId } from '../game/Tutorial';
 import { DEFAULT_SETTINGS, SaveError, UI_SCALES, type GameSettings, type SaveData } from './SaveSchema';
 
 export function serializeGame(state: GameState, settings: GameSettings): SaveData {
@@ -49,6 +50,7 @@ export function serializeGame(state: GameState, settings: GameSettings): SaveDat
     stats: { produced: { ...state.stats.produced }, sold: { ...state.stats.sold } },
     simTime: state.simTime,
     tutorialStep: state.tutorialStep,
+    seenTips: [...state.seenTips],
     research: [...state.research],
     power: { baseSupply: state.power.baseSupply },
     achievements: [...state.achievements],
@@ -289,6 +291,9 @@ export function restoreGame(raw: unknown): GameState {
       sold: counts(stats.sold ?? {}, 'Invalid stats'),
     },
     tutorialStep: integer(save.tutorialStep ?? 0, 'Invalid tutorial step'),
+    seenTips: Array.isArray(save.seenTips)
+      ? [...new Set(save.seenTips.filter((id): id is string => typeof id === 'string' && isTipId(id)))]
+      : [],
     // Ids this version does not know (e.g. from a removed node) are dropped rather than failing the load.
     research: Array.isArray(save.research)
       ? [...new Set(save.research.filter((id): id is string => typeof id === 'string' && isResearchId(id)))]

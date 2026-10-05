@@ -20,6 +20,8 @@ export interface SettingsActions {
   /** In-game only: these are omitted on the main menu. */
   onSaveNow?: () => void;
   onMainMenu?: () => void;
+  /** Opens the How to play page, which also lists the controls. */
+  onHelp?: () => void;
   /** Hands the player the factory as a file to keep. */
   onDownloadSave?: () => void;
   /** Replaces the factory with one from a file. */
@@ -28,30 +30,7 @@ export interface SettingsActions {
   getProgress?: () => CosmeticProgress;
 }
 
-const CONTROLS: [string, string][] = [
-  ['Left click', 'Place / select'],
-  ['Drag', 'Lay belts · pan'],
-  ['Right click', 'Cancel'],
-  ['Wheel', 'Zoom'],
-  ['W A S D', 'Pan'],
-  ['Q / E', 'Rotate view'],
-  ['R', 'Rotate piece'],
-  ['1 – 9, 0', 'Build tools'],
-  ['`', 'Next group of tools'],
-  ['F', 'Pick tool under cursor'],
-  ['X', 'Delete tool'],
-  ['B', 'Bottleneck view'],
-  ['T', 'Research'],
-  ['C', 'Contracts'],
-  ['G', 'Achievements'],
-  ['Ctrl C / V', 'Copy area · paste'],
-  ['P', 'Blueprints'],
-  ['Del', 'Remove selected'],
-  ['Space', 'Pause'],
-  ['Home', 'Centre view'],
-];
-
-/** Modal for audio and graphics options, with a controls reference. */
+/** Modal for audio, interface and graphics options, and for managing the save. */
 export class SettingsPanel {
   private readonly overlay: HTMLElement;
   private readonly cosmeticButtons: {
@@ -137,6 +116,19 @@ export class SettingsPanel {
     };
 
     const buttons: HTMLElement[] = [];
+    if (actions.onHelp) {
+      buttons.push(
+        el('button', {
+          class: 'button',
+          text: 'How to play & controls',
+          attrs: { type: 'button' },
+          onClick: () => {
+            this.close();
+            actions.onHelp?.();
+          },
+        }),
+      );
+    }
     if (actions.onSaveNow) {
       buttons.push(el('button', { class: 'button', text: 'Save now', attrs: { type: 'button' }, onClick: actions.onSaveNow }));
     }
@@ -203,12 +195,6 @@ export class SettingsPanel {
       cosmeticRow('Floor', 'floor', FLOOR_STYLES),
       cosmeticRow('Belts', 'belt', BELT_STYLES),
       cosmeticRow('Light', 'light', LIGHT_STYLES),
-      el('h3', { class: 'modal-subtitle', text: 'Controls' }),
-      el(
-        'div',
-        { class: 'controls' },
-        CONTROLS.flatMap(([key, action]) => [el('kbd', { text: key }), el('span', { text: action })]),
-      ),
       buttons.length > 0 ? el('div', { class: 'panel-actions' }, buttons) : null,
     ]);
 

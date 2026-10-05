@@ -48,6 +48,85 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   },
 ];
 
+/** True once the opening walkthrough is behind the player. */
+export function tutorialFinished(state: GameState): boolean {
+  return state.tutorialStep >= TUTORIAL_STEPS.length;
+}
+
+/** What a tip needs to know about the factory, as plain values. */
+export interface TipContext {
+  /** Something is holding production back that the bottleneck tools would point at. */
+  hasBottleneck: boolean;
+  itemsSold: number;
+  powerShort: boolean;
+  canAffordExpansion: boolean;
+  research: readonly string[];
+  /** Stars this factory would fetch if sold now. */
+  starsAvailable: number;
+}
+
+export interface Tip {
+  id: string;
+  text: string;
+  when: (context: TipContext) => boolean;
+}
+
+/**
+ * One-time pointers to the parts of the game the walkthrough does not reach. Each waits for
+ * the moment it becomes useful, is shown once, and can be closed. In order of priority.
+ */
+export const TIPS: Tip[] = [
+  {
+    id: 'power',
+    text: 'The factory is short of power, so every machine has slowed down. Research Wind Power and build a Turbine, or switch off machines you can spare.',
+    when: (c) => c.powerShort,
+  },
+  {
+    id: 'contracts',
+    text: 'Contracts pay a bonus for things you are selling anyway. Open Contracts to see what is on offer.',
+    when: (c) => c.itemsSold >= 10,
+  },
+  {
+    id: 'bottlenecks',
+    text: 'Something is holding the factory back. Open Production for advice on what to add, or turn on Bottlenecks to see it on the floor.',
+    when: (c) => c.hasBottleneck,
+  },
+  {
+    id: 'expansion',
+    text: 'You can afford a bigger factory floor. Open Floor to expand; everything you have built stays where it is.',
+    when: (c) => c.canAffordExpansion,
+  },
+  {
+    id: 'upgrades',
+    text: 'Machines can now be upgraded. Select one to make it faster, at the cost of more power.',
+    when: (c) => c.research.includes('machine_tuning'),
+  },
+  {
+    id: 'blueprints',
+    text: 'Copy duplicates any part of the factory: drag over it, then place the copy. Blueprints keeps layouts for later.',
+    when: (c) => c.research.includes('logistics'),
+  },
+  {
+    id: 'prestige',
+    text: 'This factory is now worth a star. Selling up, from the star in the top bar, starts a new factory with a permanent bonus, whenever you are ready.',
+    when: (c) => c.starsAvailable >= 1,
+  },
+];
+
+export function isTipId(id: string): boolean {
+  return TIPS.some((tip) => tip.id === id);
+}
+
+export function allTipIds(): string[] {
+  return TIPS.map((tip) => tip.id);
+}
+
+/** The tip to show now, if any: the first one not yet seen whose moment has come. */
+export function currentTip(state: GameState, context: TipContext): Tip | null {
+  if (!tutorialFinished(state)) return null;
+  return TIPS.find((tip) => !state.seenTips.includes(tip.id) && tip.when(context)) ?? null;
+}
+
 /** Moves past every completed step. Returns true if the step changed. */
 export function advanceTutorial(state: GameState): boolean {
   const before = state.tutorialStep;

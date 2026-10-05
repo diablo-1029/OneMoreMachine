@@ -37,7 +37,7 @@ import { TICK_DT } from './Constants';
 import { EventBus } from './EventBus';
 import type { GameState } from './GameState';
 import { saleMultiplier } from './Prestige';
-import { advanceTutorial } from './Tutorial';
+import { advanceTutorial, isTipId } from './Tutorial';
 
 export interface SimulationEvents {
   machinePlaced: MachineState;
@@ -305,6 +305,11 @@ export class Simulation {
       if (def.behavior === 'storage') machine.stored.shift();
       else machine.outputInventory[resourceId]--;
     }
+  }
+
+  /** Puts a tip away for good. */
+  dismissTip(id: string): void {
+    if (isTipId(id) && !this.state.seenTips.includes(id)) this.state.seenTips.push(id);
   }
 
   private checkTutorial(): void {

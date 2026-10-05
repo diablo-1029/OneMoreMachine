@@ -8,6 +8,7 @@ export interface MainMenuActions {
   /** Asks for the scenery behind the menu to show a site, while the player is choosing. */
   onPreviewEnvironment: (environmentId: string) => void;
   onSettings: () => void;
+  onHelp: () => void;
   /** Brings in a factory from a save file. */
   onLoadFile: () => void;
 }
@@ -60,6 +61,7 @@ export class MainMenu {
     this.buttons.replaceChildren(
       ...(hasSave ? [this.button('Continue', true, this.actions.onContinue)] : []),
       newFactory,
+      this.button('How to play', false, this.actions.onHelp),
       this.button('Load save file', false, this.actions.onLoadFile),
       this.button('Settings', false, this.actions.onSettings),
     );

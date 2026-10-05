@@ -64,6 +64,7 @@ export interface SaveData {
 
   simTime: number;
   tutorialStep: number;
+  seenTips: string[];
   research: string[];
   contracts: ContractState;
   power: { baseSupply: number };
