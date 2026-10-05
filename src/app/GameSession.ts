@@ -26,6 +26,7 @@ import type { SceneManager } from '../rendering/SceneManager';
 import { StatusBadgeRenderer } from '../rendering/StatusBadgeRenderer';
 import { BuildToolbar } from '../ui/BuildToolbar';
 import { DebugPanel } from '../ui/DebugPanel';
+import { ExpansionPanel } from '../ui/ExpansionPanel';
 import { el } from '../ui/dom';
 import { HUD } from '../ui/HUD';
 import { MachinePanel } from '../ui/MachinePanel';
@@ -51,6 +52,8 @@ export interface SessionContext {
   settings: GameSettings;
   uiRoot: HTMLElement;
   onSettingsChanged: (settings: GameSettings) => void;
+  /** Rebuilds the floor, scenery and camera limits for a new grid size. */
+  onGridChanged: (width: number, height: number) => void;
 }
 
 /**
@@ -80,6 +83,7 @@ export class GameSession {
   private readonly stats: StatsPanel;
   private readonly settingsPanel: SettingsPanel;
   private readonly researchPanel: ResearchPanel;
+  private readonly expansionPanel: ExpansionPanel;
   private readonly notifications: NotificationSystem;
   private readonly debugRenderer: DebugRenderer | null = null;
   private readonly debugPanel: DebugPanel | null = null;
@@ -144,6 +148,8 @@ export class GameSession {
       },
       toggleStats: () => {
         click();
+        // Both drop-downs open in the same spot, so only one shows at a time.
+        this.expansionPanel.hide();
         this.stats.toggle();
         this.updateUi();
       },
@@ -155,7 +161,14 @@ export class GameSession {
         click();
         this.researchPanel.toggle();
       },
+      toggleExpansion: () => {
+        click();
+        this.stats.hide();
+        this.expansionPanel.toggle();
+        this.updateUi();
+      },
     });
+    this.expansionPanel = new ExpansionPanel(ctx.uiRoot, () => this.expand());
     this.researchPanel = new ResearchPanel(
       ctx.uiRoot,
       () => this.sim.state,
@@ -231,6 +244,17 @@ export class GameSession {
       this.requestSave();
     });
     events.on('tutorialAdvanced', () => this.notifications.setHint(currentHint(this.sim.state)));
+    events.on('factoryExpanded', ({ width, height }) => {
+      // Entities keep their place on the ground; only the floor around them grows.
+      this.ctx.onGridChanged(width, height);
+      for (const machine of this.sim.state.factory.machines.values()) this.machines.updateTransform(machine);
+      this.items.resetTracks(this.sim.state.factory);
+      this.debugRenderer?.resize(width, height);
+      this.placement.refreshHover();
+      audio.play('research');
+      this.notifications.toast(`Factory floor expanded to ${width} × ${height}`);
+      this.updateUi();
+    });
     events.on('researchCompleted', (node) => {
       audio.play('research');
       this.notifications.toast(`Researched: ${node.name}`);
@@ -239,6 +263,16 @@ export class GameSession {
     });
 
     this.placement.events.on('message', (message) => this.notifications.toast(message));
+  }
+
+  // ----------------------------------------------------------- expansion
+
+  private expand(): void {
+    const result = this.sim.expandFactory();
+    if (!result.ok) {
+      this.ctx.audio.play('error');
+      if (result.reason === 'cannot_afford') this.notifications.toast('Not enough money');
+    }
   }
 
   // ------------------------------------------------------------ research
@@ -370,6 +404,7 @@ export class GameSession {
     this.machinePanel.update();
     this.stats.update(state, this.sim.metrics);
     this.researchPanel.update();
+    this.expansionPanel.update(state, this.sim.nextExpansion());
     this.hud.setResearchAvailable(this.researchPanel.hasAffordable());
     if (this.debugPanel?.visible) {
       const info = this.ctx.renderer.webgl.info.render;

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MAX_GRID_SIZE } from '../data/expansion';
 import { cylinder, merge, paint, seededRandom } from './GeometryUtils';
 import { VERTEX_MATERIAL } from './Materials';
 
@@ -43,25 +44,27 @@ export class EnvironmentRenderer {
       return true;
     };
 
-    const scatter = (count: number, margin: number, minScale: number, maxScale: number): Prop[] => {
+    // Candidates are spread over the area around the largest possible floor and always drawn
+    // in the same order, then filtered. Expanding the factory therefore only removes the
+    // scenery it paves over; every other tree and rock stays exactly where it was.
+    const scatter = (candidates: number, margin: number, minScale: number, maxScale: number): Prop[] => {
       const props: Prop[] = [];
-      const reach = Math.max(halfW, halfH) + 15;
-      let attempts = 0;
-      while (props.length < count && attempts < count * 30) {
-        attempts++;
+      const reach = MAX_GRID_SIZE / 2 + 15;
+      for (let i = 0; i < candidates; i++) {
         const x = (random() * 2 - 1) * reach;
         const z = (random() * 2 - 1) * reach;
-        if (!clear(x, z, margin)) continue;
-        props.push({ x, z, scale: minScale + random() * (maxScale - minScale), rotation: random() * Math.PI * 2 });
+        const scale = minScale + random() * (maxScale - minScale);
+        const rotation = random() * Math.PI * 2;
+        if (clear(x, z, margin)) props.push({ x, z, scale, rotation });
       }
       return props;
     };
 
-    this.addInstanced(treeGeometry(), scatter(46, 1.6, 0.8, 1.35), true);
-    this.addInstanced(pineGeometry(), scatter(26, 1.6, 0.8, 1.3), true);
-    this.addInstanced(bushGeometry(), scatter(40, 1.0, 0.6, 1.2), true);
-    this.addInstanced(rockGeometry(), scatter(30, 0.9, 0.5, 1.5), true);
-    this.addInstanced(tuftGeometry(), scatter(90, 0.7, 0.7, 1.3), false);
+    this.addInstanced(treeGeometry(), scatter(120, 1.6, 0.8, 1.35), true);
+    this.addInstanced(pineGeometry(), scatter(70, 1.6, 0.8, 1.3), true);
+    this.addInstanced(bushGeometry(), scatter(105, 1.0, 0.6, 1.2), true);
+    this.addInstanced(rockGeometry(), scatter(80, 0.9, 0.5, 1.5), true);
+    this.addInstanced(tuftGeometry(), scatter(240, 0.7, 0.7, 1.3), false);
   }
 
   private addGround(pond: { x: number; z: number; radius: number }, halfW: number, halfH: number): void {

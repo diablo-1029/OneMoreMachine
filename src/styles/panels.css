@@ -364,6 +364,30 @@ kbd {
   white-space: nowrap;
 }
 
+/* -------------------------------------------------------------- expansion */
+
+.expansion-panel {
+  position: absolute;
+  top: 66px;
+  left: 14px;
+  width: 280px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.expansion-panel .button:disabled {
+  background: var(--panel-raised);
+  border-color: var(--border);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
 /* --------------------------------------------------------------- research */
 
 .research-modal {

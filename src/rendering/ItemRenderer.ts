@@ -8,7 +8,8 @@ import { gearGeometry, merge, paint } from './GeometryUtils';
 import { PALETTE, VERTEX_MATERIAL } from './Materials';
 import { cellCenterX, cellCenterZ } from './WorldMapping';
 
-const MAX_ITEMS_PER_RESOURCE = 1024;
+/** Two items per tile on the largest floor. */
+const MAX_ITEMS_PER_RESOURCE = 2048;
 /** Seconds an item takes to grow in when it appears and to shrink away when it is consumed. */
 const APPEAR_SECONDS = 0.16;
 const VANISH_SECONDS = 0.14;

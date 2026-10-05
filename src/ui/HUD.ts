@@ -10,6 +10,7 @@ export interface HudActions {
   toggleStats: () => void;
   toggleBottleneckView: () => void;
   openResearch: () => void;
+  toggleExpansion: () => void;
 }
 
 /** Top bar: money, income rate, pause / speed and settings. */
@@ -54,6 +55,14 @@ export class HUD {
       attrs: { type: 'button', 'aria-label': 'Research' },
     });
 
+    const expandButton = el('button', {
+      class: 'pill icon-button',
+      title: 'Factory floor — buy more space',
+      html: ICONS.expand,
+      onClick: actions.toggleExpansion,
+      attrs: { type: 'button', 'aria-label': 'Factory floor' },
+    });
+
     root.append(
       el('div', { class: 'topbar' }, [
         el('div', { class: 'topbar-group' }, [
@@ -70,6 +79,7 @@ export class HUD {
           ),
           this.bottleneckButton,
           this.researchButton,
+          expandButton,
         ]),
         el('div', { class: 'topbar-group' }, [
           el('div', { class: 'pill speed' }, [

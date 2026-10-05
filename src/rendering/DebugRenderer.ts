@@ -51,6 +51,16 @@ export class DebugRenderer {
     return mesh;
   }
 
+  /** Discards the coordinate overlay so it is redrawn for a new floor size. */
+  resize(width: number, height: number): void {
+    if (!this.coordinates) return;
+    const wasVisible = this.coordinates.visible;
+    this.group.remove(this.coordinates);
+    this.coordinates.geometry.dispose();
+    this.coordinates = null;
+    this.setCoordinatesVisible(wasVisible, width, height);
+  }
+
   setFootprintsVisible(visible: boolean): void {
     this.footprints.visible = visible;
   }

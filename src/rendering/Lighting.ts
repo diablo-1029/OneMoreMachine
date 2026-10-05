@@ -27,7 +27,7 @@ export class Lighting {
     cam.top = half;
     cam.bottom = -half;
     cam.near = 1;
-    cam.far = 60;
+    cam.far = 110;
     cam.updateProjectionMatrix();
   }
 

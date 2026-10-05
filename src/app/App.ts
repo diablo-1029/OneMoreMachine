@@ -85,7 +85,7 @@ export class App {
     this.grid.build(width, height);
     this.environment.build(width, height);
     this.sceneManager.lighting.setCoverage(Math.max(width, height));
-    this.camera.setPanLimit(Math.max(width, height) / 2 + 5);
+    this.camera.setWorldSize(Math.max(width, height));
   }
 
   private applySettings(settings: GameSettings): void {
@@ -126,6 +126,7 @@ export class App {
       settings: this.settings,
       uiRoot: this.uiRoot,
       onSettingsChanged: (settings) => this.applySettings(settings),
+      onGridChanged: (w, h) => this.buildWorld(w, h),
     });
     this.menu.hide();
 

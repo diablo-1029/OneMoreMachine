@@ -6,7 +6,8 @@ import type { MachineState } from './MachineState';
 
 /** All placed entities plus the grid they sit on. Pure data container; rules live in Simulation. */
 export class FactoryState {
-  readonly grid: Grid;
+  /** Replaced, not resized, when the floor is expanded. */
+  grid: Grid;
   readonly occupancy = new GridOccupancy();
   readonly machines = new Map<string, MachineState>();
   readonly conveyors = new Map<string, ConveyorState>();
@@ -15,6 +16,38 @@ export class FactoryState {
 
   constructor(width: number, height: number) {
     this.grid = new Grid(width, height);
+  }
+
+  /**
+   * Enlarges the floor to width × height, growing it equally on all sides. Everything already
+   * built keeps its place on the ground, which means its grid coordinates shift by the margin
+   * added on the low sides. Returns that shift.
+   */
+  expand(width: number, height: number): { dx: number; dy: number } {
+    const dx = Math.floor((width - this.grid.width) / 2);
+    const dy = Math.floor((height - this.grid.height) / 2);
+    this.grid = new Grid(width, height);
+    this.occupancy.clear();
+
+    for (const machine of this.machines.values()) {
+      machine.gridX += dx;
+      machine.gridY += dy;
+      for (const item of machine.transit) {
+        item.tileX += dx;
+        item.tileY += dy;
+      }
+      this.occupancy.occupy(this.machineCells(machine), { kind: 'machine', id: machine.id });
+    }
+    for (const conveyor of this.conveyors.values()) {
+      conveyor.gridX += dx;
+      conveyor.gridY += dy;
+      for (const item of conveyor.items) {
+        item.tileX += dx;
+        item.tileY += dy;
+      }
+      this.occupancy.occupy([{ x: conveyor.gridX, y: conveyor.gridY }], { kind: 'conveyor', id: conveyor.id });
+    }
+    return { dx, dy };
   }
 
   newEntityId(prefix: string): string {

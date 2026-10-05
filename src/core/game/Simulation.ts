@@ -17,6 +17,7 @@ import { rotateDir, type Direction } from '../grid/GridPosition';
 import { validatePlacement, type PlacementFailure } from '../grid/PlacementValidator';
 import { getRecipe, hasRecipe, recipesFor } from '../recipes/RecipeRegistry';
 import { getResearchNode, researchStatus, unlockedMachines, unlockedRecipes } from '../research/Research';
+import { nextExpansion, type ExpansionStep } from '../../data/expansion';
 import type { ResearchNode } from '../../data/research';
 import { TICK_DT } from './Constants';
 import { EventBus } from './EventBus';
@@ -38,6 +39,8 @@ export interface SimulationEvents {
   itemEntered: { machine: MachineState; resourceId: string };
   tutorialAdvanced: number;
   researchCompleted: ResearchNode;
+  /** The floor grew; every grid coordinate has shifted by (dx, dy). */
+  factoryExpanded: { width: number; height: number; dx: number; dy: number };
 }
 
 export type CommandFailure =
@@ -46,7 +49,8 @@ export type CommandFailure =
   | 'not_found'
   | 'invalid_recipe'
   | 'not_researched'
-  | 'already_researched';
+  | 'already_researched'
+  | 'max_size';
 export type CommandResult<T> = { ok: true; value: T } | { ok: false; reason: CommandFailure };
 
 const fail = (reason: CommandFailure): { ok: false; reason: CommandFailure } => ({ ok: false, reason });
@@ -193,6 +197,25 @@ export class Simulation {
     if (!check.valid) return fail(check.reason);
     if (!economy.canAfford(buildCost(type))) return fail('cannot_afford');
     return { ok: true, value: null };
+  }
+
+  // ----------------------------------------------------------- expansion
+
+  /** The next floor size on offer, or null once the factory is as large as it can get. */
+  nextExpansion(): ExpansionStep | null {
+    const { width, height } = this.state.factory.grid;
+    return nextExpansion(Math.max(width, height));
+  }
+
+  /** Buys the next floor size. Nothing that is already built moves on the ground. */
+  expandFactory(): CommandResult<ExpansionStep> {
+    const step = this.nextExpansion();
+    if (!step) return fail('max_size');
+    if (!this.state.economy.spend(step.cost)) return fail('cannot_afford');
+    const { dx, dy } = this.state.factory.expand(step.size, step.size);
+    this.events.emit('factoryExpanded', { width: step.size, height: step.size, dx, dy });
+    this.topologyChanged();
+    return { ok: true, value: step };
   }
 
   // ------------------------------------------------------------ research

@@ -58,6 +58,10 @@ export class StatsPanel {
     this.findingsKey = '';
   }
 
+  hide(): void {
+    this.panel.classList.add('hidden');
+  }
+
   get visible(): boolean {
     return !this.panel.classList.contains('hidden');
   }

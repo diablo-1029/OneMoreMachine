@@ -54,6 +54,7 @@ const FAILURE_MESSAGES: Record<CommandFailure, string> = {
   invalid_recipe: 'That machine can’t make that',
   not_researched: 'Not researched yet',
   already_researched: 'Already researched',
+  max_size: 'The factory is as large as it can get',
 };
 
 /**

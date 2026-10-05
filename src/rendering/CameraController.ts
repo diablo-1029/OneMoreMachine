@@ -3,7 +3,7 @@ import * as THREE from 'three';
 const PITCH = THREE.MathUtils.degToRad(50);
 const DISTANCE = 60;
 const MIN_VIEW_HEIGHT = 5;
-const MAX_VIEW_HEIGHT = 34;
+const BASE_MAX_VIEW_HEIGHT = 34;
 const DEFAULT_VIEW_HEIGHT = 17;
 
 /**
@@ -21,6 +21,7 @@ export class CameraController {
   /** Extra yaw from the slow idle orbit shown behind the main menu. */
   private driftAngle = 0;
   private panLimit = 12;
+  private maxViewHeight = BASE_MAX_VIEW_HEIGHT;
 
   private readonly raycaster = new THREE.Raycaster();
   private readonly ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -30,8 +31,11 @@ export class CameraController {
     this.apply();
   }
 
-  setPanLimit(limit: number): void {
-    this.panLimit = limit;
+  /** Sets how far the view may travel and zoom out, from the size of the factory floor. */
+  setWorldSize(gridSize: number): void {
+    this.panLimit = gridSize / 2 + 5;
+    // Enough to see the whole floor corner to corner, plus some scenery.
+    this.maxViewHeight = Math.max(BASE_MAX_VIEW_HEIGHT, gridSize * 1.25 + 10);
   }
 
   /** Keeps zoom and centre; only the horizontal extent follows the new aspect ratio. */
@@ -88,7 +92,7 @@ export class CameraController {
   /** Zooms by `factor`, keeping the ground point under the cursor fixed. */
   zoom(factor: number, ndcX: number, ndcY: number): void {
     const before = this.groundPoint(ndcX, ndcY, new THREE.Vector3());
-    this.viewHeight = THREE.MathUtils.clamp(this.viewHeight * factor, MIN_VIEW_HEIGHT, MAX_VIEW_HEIGHT);
+    this.viewHeight = THREE.MathUtils.clamp(this.viewHeight * factor, MIN_VIEW_HEIGHT, this.maxViewHeight);
     this.apply();
     const after = this.groundPoint(ndcX, ndcY, new THREE.Vector3());
     if (before && after) this.panWorld(before.x - after.x, before.z - after.z);
