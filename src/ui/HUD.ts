@@ -1,0 +1,104 @@
+import { formatMoney } from '../core/economy/Currency';
+import type { GameState } from '../core/game/GameState';
+import type { GameSpeed } from '../core/game/TickSystem';
+import { el, setText } from './dom';
+import { ICONS } from './Icons';
+
+export interface HudActions {
+  setSpeed: (speed: GameSpeed) => void;
+  openSettings: () => void;
+  toggleStats: () => void;
+  toggleBottleneckView: () => void;
+}
+
+/** Top bar: money, income rate, pause / speed and settings. */
+export class HUD {
+  private readonly money: HTMLElement;
+  private readonly income: HTMLElement;
+  private readonly speedButtons = new Map<GameSpeed, HTMLButtonElement>();
+  private readonly bottleneckButton: HTMLButtonElement;
+  private shownMoney = -1;
+
+  constructor(root: HTMLElement, actions: HudActions) {
+    this.money = el('span', { class: 'money-value', text: '$0' });
+    this.income = el('span', { class: 'income-value', text: '+$0/min' });
+
+    const speed = (value: GameSpeed, label: string, title: string) => {
+      const button = el('button', {
+        class: 'speed-button',
+        title,
+        onClick: () => actions.setSpeed(value),
+        attrs: { type: 'button' },
+      });
+      if (value === 0) button.innerHTML = ICONS.pause;
+      else button.textContent = label;
+      this.speedButtons.set(value, button);
+      return button;
+    };
+
+    this.bottleneckButton = el('button', {
+      class: 'pill icon-button',
+      title: 'Bottleneck view (B) — colour machines by how busy they are and mark jammed belts',
+      html: ICONS.bottleneck,
+      onClick: actions.toggleBottleneckView,
+      attrs: { type: 'button', 'aria-label': 'Bottleneck view', 'aria-pressed': 'false' },
+    });
+
+    root.append(
+      el('div', { class: 'topbar' }, [
+        el('div', { class: 'topbar-group' }, [
+          el('div', { class: 'pill money', title: 'Money' }, [el('span', { class: 'coin' }), this.money]),
+          el(
+            'button',
+            {
+              class: 'pill income',
+              title: 'Factory income — click for production stats',
+              onClick: actions.toggleStats,
+              attrs: { type: 'button' },
+            },
+            [this.income],
+          ),
+          this.bottleneckButton,
+        ]),
+        el('div', { class: 'topbar-group' }, [
+          el('div', { class: 'pill speed' }, [
+            speed(0, '', 'Pause (Space)'),
+            speed(1, '1×', 'Normal speed'),
+            speed(2, '2×', 'Double speed'),
+          ]),
+          el('button', {
+            class: 'pill icon-button',
+            title: 'Settings',
+            html: ICONS.settings,
+            onClick: actions.openSettings,
+            attrs: { type: 'button', 'aria-label': 'Settings' },
+          }),
+        ]),
+      ]),
+    );
+  }
+
+  setBottleneckView(active: boolean): void {
+    this.bottleneckButton.classList.toggle('active', active);
+    this.bottleneckButton.setAttribute('aria-pressed', String(active));
+  }
+
+  setSpeed(speed: GameSpeed): void {
+    for (const [value, button] of this.speedButtons) button.classList.toggle('active', value === speed);
+  }
+
+  update(state: GameState): void {
+    const money = Math.floor(state.economy.money);
+    if (money !== this.shownMoney) {
+      // A quick bump draws the eye whenever income arrives.
+      if (this.shownMoney >= 0 && money > this.shownMoney) {
+        this.money.classList.remove('bump');
+        void this.money.offsetWidth;
+        this.money.classList.add('bump');
+      }
+      this.shownMoney = money;
+      setText(this.money, formatMoney(money));
+    }
+    setText(this.income, `+${formatMoney(state.economy.incomePerMinute())}/min`);
+  }
+}

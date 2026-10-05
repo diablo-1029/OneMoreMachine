@@ -1,0 +1,275 @@
+import type { ConveyorState } from '../core/factory/ConveyorState';
+import { getMachineDef } from '../core/factory/MachineRegistry';
+import type { Inventory, MachineState } from '../core/factory/MachineState';
+import { machineStatus, nominalRatePerMinute, STATUS_LABELS } from '../core/factory/MachineSystem';
+import type { Simulation } from '../core/game/Simulation';
+import { DIR_NAMES } from '../core/grid/GridPosition';
+import { getRecipe } from '../core/recipes/RecipeRegistry';
+import { CONVEYOR_INFO } from '../data/machines';
+import { getResource, RESOURCE_DEFINITIONS } from '../data/resources';
+import type { PlacementController, Selection } from '../input/PlacementController';
+import { el, setText } from './dom';
+
+function resourceChip(resourceId: string, amount: string): HTMLElement {
+  const resource = getResource(resourceId);
+  const dot = el('span', { class: `resource-dot resource-${resource.icon}` });
+  dot.style.background = resource.color;
+  return el('span', { class: 'chip' }, [dot, `${amount} ${resource.name}`]);
+}
+
+type RowKey = 'status' | 'recipe' | 'input' | 'output' | 'progress' | 'rate' | 'efficiency';
+
+/** Right-hand panel describing the selected machine or belt. */
+export class MachinePanel {
+  private readonly panel: HTMLElement;
+  private readonly name: HTMLElement;
+  private readonly description: HTMLElement;
+  private readonly status: HTMLElement;
+  private readonly recipe: HTMLElement;
+  private readonly input: HTMLElement;
+  private readonly output: HTMLElement;
+  private readonly inputLabel: HTMLElement;
+  private readonly progressFill: HTMLElement;
+  private readonly rate: HTMLElement;
+  private readonly efficiency: HTMLElement;
+  private readonly efficiencyFill: HTMLElement;
+  private readonly toggle: HTMLButtonElement;
+  private readonly rows = new Map<RowKey, HTMLElement>();
+  private selection: Selection = null;
+  private signature = '';
+
+  constructor(
+    root: HTMLElement,
+    private readonly sim: Simulation,
+    placement: PlacementController,
+    onClick: () => void,
+  ) {
+    this.name = el('h2', { class: 'panel-title' });
+    this.description = el('p', { class: 'panel-description' });
+    this.status = el('span', { class: 'status' });
+    this.recipe = el('div', { class: 'row-value' });
+    this.input = el('div', { class: 'row-value' });
+    this.output = el('div', { class: 'row-value' });
+    this.rate = el('div', { class: 'row-value' });
+    this.efficiency = el('div', { class: 'row-value' });
+    this.progressFill = el('div', { class: 'progress-fill' });
+    this.efficiencyFill = el('div', { class: 'progress-fill' });
+    this.inputLabel = el('span', { class: 'row-label', text: 'Input' });
+
+    const row = (key: RowKey, label: string | HTMLElement, value: HTMLElement) => {
+      const node = el('div', { class: 'row' }, [
+        typeof label === 'string' ? el('span', { class: 'row-label', text: label }) : label,
+        value,
+      ]);
+      this.rows.set(key, node);
+      return node;
+    };
+
+    this.toggle = el('button', {
+      class: 'button',
+      attrs: { type: 'button' },
+      onClick: () => {
+        onClick();
+        const machine = this.machine();
+        if (machine) this.sim.setMachineEnabled(machine.id, !machine.enabled);
+      },
+    });
+
+    this.panel = el('aside', { class: 'machine-panel hidden' }, [
+      el('div', { class: 'panel-header' }, [
+        this.name,
+        el('button', {
+          class: 'panel-close',
+          text: '×',
+          title: 'Close (Esc)',
+          attrs: { type: 'button', 'aria-label': 'Close' },
+          onClick: () => placement.select(null),
+        }),
+      ]),
+      this.description,
+      el('div', { class: 'rows' }, [
+        row('status', 'Status', this.status),
+        row('recipe', 'Recipe', this.recipe),
+        row('input', this.inputLabel, this.input),
+        row('output', 'Output', this.output),
+        row('progress', 'Progress', el('div', { class: 'progress' }, [this.progressFill])),
+        row('rate', 'Rate', this.rate),
+        row('efficiency', 'Efficiency', el('div', { class: 'efficiency' }, [
+          el('div', { class: 'progress' }, [this.efficiencyFill]),
+          this.efficiency,
+        ])),
+      ]),
+      el('div', { class: 'panel-actions' }, [
+        this.toggle,
+        el('button', {
+          class: 'button',
+          text: 'Rotate',
+          title: 'Rotate (R)',
+          attrs: { type: 'button' },
+          onClick: () => placement.rotate(),
+        }),
+        el('button', {
+          class: 'button danger',
+          text: 'Delete',
+          title: 'Delete (Del)',
+          attrs: { type: 'button' },
+          onClick: () => placement.deleteSelected(),
+        }),
+      ]),
+    ]);
+    root.append(this.panel);
+
+    placement.events.on('selectionChanged', (selection) => {
+      this.selection = selection;
+      this.signature = '';
+      this.update();
+    });
+  }
+
+  private machine(): MachineState | undefined {
+    return this.selection?.kind === 'machine' ? this.sim.state.factory.machines.get(this.selection.id) : undefined;
+  }
+
+  private conveyor(): ConveyorState | undefined {
+    return this.selection?.kind === 'conveyor' ? this.sim.state.factory.conveyors.get(this.selection.id) : undefined;
+  }
+
+  /** Refreshes the panel. Cheap enough to call several times a second. */
+  update(): void {
+    const machine = this.machine();
+    const conveyor = this.conveyor();
+    this.panel.classList.toggle('hidden', !machine && !conveyor);
+    if (machine) this.showMachine(machine);
+    else if (conveyor) this.showConveyor(conveyor);
+  }
+
+  private showRows(visible: RowKey[]): void {
+    for (const [key, node] of this.rows) node.classList.toggle('hidden', !visible.includes(key));
+  }
+
+  private fillChips(container: HTMLElement, key: string, chips: HTMLElement[], empty: string): void {
+    // Rebuild only when the contents changed; the key is a cheap fingerprint.
+    if (container.dataset.key === key) return;
+    container.dataset.key = key;
+    container.replaceChildren(...(chips.length > 0 ? chips : [el('span', { class: 'muted', text: empty })]));
+  }
+
+  private inventoryChips(inventory: Inventory): { key: string; chips: HTMLElement[] } {
+    const chips: HTMLElement[] = [];
+    let key = '';
+    for (const resource of RESOURCE_DEFINITIONS) {
+      const count = inventory[resource.id] ?? 0;
+      if (count <= 0) continue;
+      key += `${resource.id}:${count};`;
+      chips.push(resourceChip(resource.id, String(count)));
+    }
+    return { key, chips };
+  }
+
+  private showHeader(id: string, name: string, description: string, canDisable: boolean): void {
+    if (this.signature === id) return;
+    this.signature = id;
+    setText(this.name, name);
+    setText(this.description, description);
+    this.toggle.classList.toggle('hidden', !canDisable);
+  }
+
+  private showMachine(machine: MachineState): void {
+    const def = getMachineDef(machine.type);
+    const status = machineStatus(machine);
+    this.showHeader(machine.id, def.name, def.description, true);
+    setText(this.status, STATUS_LABELS[status]);
+    this.status.dataset.status = status;
+    setText(this.toggle, machine.enabled ? 'Disable' : 'Enable');
+
+    switch (def.behavior) {
+      case 'crafter':
+        this.showCrafter(machine);
+        break;
+      case 'seller':
+        this.showRows(['status', 'input', 'output', 'rate']);
+        setText(this.inputLabel, 'Input');
+        this.fillChips(this.input, 'seller-in', [], 'Any item');
+        this.fillChips(this.output, 'seller-out', [], 'Money');
+        setText(this.rate, 'As fast as items arrive');
+        break;
+      case 'router':
+        this.showRows(['status', 'input', 'rate']);
+        setText(this.inputLabel, 'Crossing');
+        this.fillChips(this.input, `transit:${machine.transit.length}`, [], `${machine.transit.length} item${machine.transit.length === 1 ? '' : 's'}`);
+        setText(this.rate, 'Up to 120 items/min');
+        break;
+      case 'storage': {
+        this.showRows(['status', 'input', 'progress']);
+        setText(this.inputLabel, 'Holding');
+        const held: Inventory = {};
+        for (const id of machine.stored) held[id] = (held[id] ?? 0) + 1;
+        const chips = this.inventoryChips(held);
+        const capacity = def.storageCapacity ?? 0;
+        this.fillChips(this.input, `stored:${chips.key}`, chips.chips, 'Empty');
+        this.progressFill.style.width = `${Math.round((machine.stored.length / Math.max(capacity, 1)) * 100)}%`;
+        break;
+      }
+    }
+  }
+
+  private showCrafter(machine: MachineState): void {
+    const def = getMachineDef(machine.type);
+    this.showRows(['status', 'recipe', 'input', 'output', 'progress', 'rate', 'efficiency']);
+    setText(this.inputLabel, 'Input');
+
+    if (machine.recipeId) {
+      const recipe = getRecipe(machine.recipeId);
+      const parts = [
+        ...recipe.inputs.map((i) => resourceChip(i.resourceId, String(i.amount))),
+        el('span', { class: 'arrow', text: '→' }),
+        ...recipe.outputs.map((o) => resourceChip(o.resourceId, String(o.amount))),
+        el('span', { class: 'muted', text: `${recipe.duration}s` }),
+      ];
+      this.fillChips(this.recipe, recipe.id, recipe.inputs.length > 0 ? parts : parts.slice(1), '');
+    }
+
+    const input = this.inventoryChips(machine.inputInventory);
+    const takesInput = def.ports.some((p) => p.type === 'input');
+    this.fillChips(this.input, `in:${input.key}`, input.chips, takesInput ? 'Empty' : 'None needed');
+    const output = this.inventoryChips(machine.outputInventory);
+    this.fillChips(this.output, `out:${output.key}`, output.chips, 'Empty');
+    this.progressFill.style.width = `${Math.round((machine.active ? machine.progress : 0) * 100)}%`;
+
+    const { metrics } = this.sim;
+    const nominal = nominalRatePerMinute(machine);
+    if (nominal) {
+      const actual = Math.round(metrics.machineOutputRate(machine.id));
+      setText(this.rate, `${actual} of ${Math.round(nominal.perMinute)} ${getResource(nominal.resourceId).name}/min`);
+    }
+
+    // Where the machine's time has gone over the last half minute.
+    const shares = metrics.shares(machine.id);
+    if (shares.observed < 3) {
+      setText(this.efficiency, 'Measuring…');
+      this.efficiencyFill.style.width = '0%';
+      this.efficiencyFill.dataset.level = '';
+    } else {
+      const lost =
+        shares.waiting >= shares.blocked && shares.waiting > 0.02
+          ? ` · waiting ${Math.round(shares.waiting * 100)}%`
+          : shares.blocked > 0.02
+            ? ` · backed up ${Math.round(shares.blocked * 100)}%`
+            : '';
+      setText(this.efficiency, `${Math.round(shares.working * 100)}%${lost}`);
+      this.efficiencyFill.style.width = `${Math.round(shares.working * 100)}%`;
+      this.efficiencyFill.dataset.level = shares.working >= 0.9 ? 'good' : shares.working >= 0.6 ? 'fair' : 'poor';
+    }
+  }
+
+  private showConveyor(conveyor: ConveyorState): void {
+    this.showHeader(conveyor.id, CONVEYOR_INFO.name, CONVEYOR_INFO.description, false);
+    this.showRows(['status', 'input', 'rate']);
+    setText(this.status, `Heading ${DIR_NAMES[conveyor.direction]}`);
+    this.status.dataset.status = 'working';
+    setText(this.inputLabel, 'Carrying');
+    const count = conveyor.items.length;
+    this.fillChips(this.input, `belt:${count}`, [], `${count} item${count === 1 ? '' : 's'}`);
+    setText(this.rate, 'Up to 120 items/min');
+  }
+}
