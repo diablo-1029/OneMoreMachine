@@ -1,3 +1,4 @@
+import { BELT_STYLES, FLOOR_STYLES, LIGHT_STYLES } from '../../data/cosmetics';
 import { getEnvironment } from '../../data/environments';
 import { isResource } from '../../data/resources';
 import { MAX_MACHINE_LEVEL } from '../../data/upgrades';
@@ -58,7 +59,7 @@ export function serializeGame(state: GameState, settings: GameSettings): SaveDat
       completed: state.contracts.completed,
       nextId: state.contracts.nextId,
     },
-    settings: { ...settings },
+    settings: { ...settings, cosmetics: { ...settings.cosmetics } },
   };
 }
 
@@ -307,8 +308,15 @@ export function restoreGame(raw: unknown): GameState {
 
 /** Reads settings from untrusted data, falling back to defaults field by field. */
 export function parseSettings(raw: unknown): GameSettings {
-  const settings = { ...DEFAULT_SETTINGS };
+  const settings = { ...DEFAULT_SETTINGS, cosmetics: { ...DEFAULT_SETTINGS.cosmetics } };
   if (!isRecord(raw)) return settings;
+  if (isRecord(raw.cosmetics)) {
+    // Each choice must name a style that exists; anything else keeps the default.
+    const { floor, belt, light } = raw.cosmetics;
+    if (FLOOR_STYLES.some((s) => s.id === floor)) settings.cosmetics.floor = floor as string;
+    if (BELT_STYLES.some((s) => s.id === belt)) settings.cosmetics.belt = belt as string;
+    if (LIGHT_STYLES.some((s) => s.id === light)) settings.cosmetics.light = light as string;
+  }
   if (typeof raw.masterVolume === 'number' && Number.isFinite(raw.masterVolume)) {
     settings.masterVolume = Math.min(Math.max(raw.masterVolume, 0), 1);
   }

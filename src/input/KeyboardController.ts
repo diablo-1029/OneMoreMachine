@@ -18,7 +18,7 @@ export interface KeyboardActions {
 /**
  *   WASD / arrows  pan          Q / E   rotate view       Home    centre factory
  *   R              rotate       Esc     cancel            Delete  remove selection
- *   1-8            build tools  X       delete tool       Space   pause
+ *   1-9, 0         build tools  X       delete tool       Space   pause
  *   F              pick tool from what is under the cursor  B       bottleneck view
  *   T              research     C       contracts         G       achievements
  *   Ctrl+C         copy an area Ctrl+V  paste it          P       blueprints
@@ -57,9 +57,10 @@ export class KeyboardController {
     this.held.add(event.code);
     if (event.repeat) return;
 
-    const digit = /^Digit([1-9])$/.exec(event.code);
+    const digit = /^Digit([0-9])$/.exec(event.code);
     if (digit) {
-      const type = BUILD_ORDER[Number(digit[1]) - 1];
+      // 1-9 pick the first nine tools; 0 picks the tenth.
+      const type = BUILD_ORDER[(Number(digit[1]) + 9) % 10];
       if (type) this.placement.toggleBuild(type);
       return;
     }

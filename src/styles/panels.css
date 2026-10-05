@@ -266,7 +266,7 @@
 
 .machine-panel {
   position: absolute;
-  top: 70px;
+  top: calc(var(--topbar-bottom, 58px) + 10px);
   right: 14px;
   width: 290px;
   padding: 14px 16px 16px;
@@ -284,7 +284,7 @@
 
 .stats-panel {
   position: absolute;
-  top: 66px;
+  top: calc(var(--topbar-bottom, 58px) + 10px);
   left: 14px;
   width: 310px;
   max-height: calc(100vh - 190px);
@@ -351,6 +351,23 @@
   font-size: 14.5px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.cosmetic-setting {
+  align-items: flex-start;
+  cursor: default;
+}
+
+.cosmetic-choices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.cosmetic-choices .recipe-choice:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .setting input[type='range'] {
@@ -434,7 +451,7 @@ kbd {
 
 .blueprints-panel {
   position: absolute;
-  top: 66px;
+  top: calc(var(--topbar-bottom, 58px) + 10px);
   left: 14px;
   width: 320px;
   max-height: calc(100vh - 190px);
@@ -633,7 +650,7 @@ kbd {
 
 .contracts-panel {
   position: absolute;
-  top: 66px;
+  top: calc(var(--topbar-bottom, 58px) + 10px);
   left: 14px;
   width: 310px;
   max-height: calc(100vh - 190px);
@@ -713,7 +730,7 @@ kbd {
 
 .expansion-panel {
   position: absolute;
-  top: 66px;
+  top: calc(var(--topbar-bottom, 58px) + 10px);
   left: 14px;
   width: 280px;
   padding: 14px 16px;

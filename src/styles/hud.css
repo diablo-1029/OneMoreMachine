@@ -213,7 +213,7 @@
 
 .hint {
   position: absolute;
-  top: 70px;
+  top: calc(var(--topbar-bottom, 58px) + 10px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -405,7 +405,7 @@
 /* Below this width the top bar takes two rows, so the hint sits under both. */
 @media (max-width: 980px) {
   .hint {
-    top: 122px;
+    top: calc(var(--topbar-bottom, 58px) + 10px);
   }
 }
 
@@ -418,7 +418,7 @@
     font-size: 11px;
   }
   .hint {
-    top: 122px;
+    top: calc(var(--topbar-bottom, 58px) + 10px);
     border-radius: 16px;
   }
 }

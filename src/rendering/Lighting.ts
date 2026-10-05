@@ -1,9 +1,14 @@
 import * as THREE from 'three';
+import { LIGHT_STYLES, type LightStyle } from '../data/cosmetics';
 
 /** Soft sky fill plus one shadow-casting sun, angled so shadows fall towards the camera's right. */
 export class Lighting {
   readonly sun: THREE.DirectionalLight;
   private readonly sky: THREE.HemisphereLight;
+  /** The environment's sunlight colour, before the lighting style tints it. */
+  private readonly themeSun = new THREE.Color(0xfff4e0);
+  private style: LightStyle = LIGHT_STYLES[0];
+  private readonly tint = new THREE.Color();
 
   constructor(scene: THREE.Scene) {
     this.sky = new THREE.HemisphereLight(0xffffff, 0xb7c79a, 1.9);
@@ -23,7 +28,21 @@ export class Lighting {
   /** Tints the light for an environment: the colour bounced up from its ground, and its sunlight. */
   setColors(bounce: number, sun: number): void {
     this.sky.groundColor.setHex(bounce);
-    this.sun.color.setHex(sun);
+    this.themeSun.setHex(sun);
+    this.applyStyle();
+  }
+
+  /** Changes the time of day: how strong and warm the sun is, and how low it stands. */
+  setStyle(style: LightStyle): void {
+    this.style = style;
+    this.applyStyle();
+  }
+
+  private applyStyle(): void {
+    this.sun.color.copy(this.themeSun).multiply(this.tint.setHex(this.style.sunTint));
+    this.sun.intensity = this.style.sunIntensity;
+    this.sky.intensity = this.style.skyIntensity;
+    this.sun.position.set(...this.style.sunPosition);
   }
 
   /** Sizes the shadow frustum to the factory plus a margin of scenery. */

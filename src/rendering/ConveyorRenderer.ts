@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { conveyorShape } from '../core/factory/ConveyorSystem';
 import type { FactoryState } from '../core/factory/FactoryState';
 import { CONVEYOR_SPEED } from '../core/game/Constants';
+import { BELT_STYLES, type BeltStyle } from '../data/cosmetics';
 import { rotateDir } from '../core/grid/GridPosition';
 import { box, merge, paint, sectorSlab } from './GeometryUtils';
 import { PALETTE, VERTEX_MATERIAL, VERTEX_MATERIAL_DOUBLE } from './Materials';
@@ -49,15 +50,12 @@ function cornerGeometry(variant: 'A' | 'B'): { body: THREE.BufferGeometry; belt:
 }
 
 /** Dark rubber with chevrons pointing along +U. Scrolling the texture animates every belt at once. */
-function createBeltTexture(): THREE.CanvasTexture {
-  const size = 128;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
+function paintBelt(canvas: HTMLCanvasElement, style: BeltStyle): void {
+  const size = canvas.width;
   const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = '#262a31';
+  ctx.fillStyle = style.surface;
   ctx.fillRect(0, 0, size, size);
-  ctx.strokeStyle = '#59616f';
+  ctx.strokeStyle = style.chevron;
   ctx.lineWidth = 9;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
@@ -68,6 +66,13 @@ function createBeltTexture(): THREE.CanvasTexture {
     ctx.lineTo(offset + 16, size - 30);
     ctx.stroke();
   }
+}
+
+function createBeltTexture(): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  paintBelt(canvas, BELT_STYLES[0]);
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
@@ -84,6 +89,7 @@ export class ConveyorRenderer {
   private readonly bodies: Record<ShapeKey, THREE.InstancedMesh>;
   private readonly belts: Record<ShapeKey, THREE.InstancedMesh>;
   private readonly beltTexture = createBeltTexture();
+  private beltStyle: BeltStyle = BELT_STYLES[0];
   private readonly dummy = new THREE.Object3D();
   private scroll = 0;
   private dirty = true;
@@ -113,6 +119,14 @@ export class ConveyorRenderer {
       cornerA: make(cornerA.belt, beltMaterial, false),
       cornerB: make(cornerB.belt, beltMaterial, false),
     };
+  }
+
+  /** Repaints every belt in another style. They all share one texture, so this is a single redraw. */
+  setBeltStyle(style: BeltStyle): void {
+    if (style === this.beltStyle) return;
+    this.beltStyle = style;
+    paintBelt(this.beltTexture.image as HTMLCanvasElement, style);
+    this.beltTexture.needsUpdate = true;
   }
 
   /** Marks the layout stale; the next update rewrites the instance buffers. */

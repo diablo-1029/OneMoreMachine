@@ -39,8 +39,8 @@ export class BuildToolbar {
           attrs: { type: 'button' },
         },
         [
-          // Only the first nine tools have a number key.
-          el('span', { class: 'tool-key', text: index < 9 ? String(index + 1) : '' }),
+          // Number keys 1-9, then 0 for the tenth tool.
+          el('span', { class: 'tool-key', text: index < 9 ? String(index + 1) : index === 9 ? '0' : '' }),
           el('span', { class: 'tool-icon', html: ICONS[type] ?? '' }),
           el('span', { class: 'tool-name', text: type === 'conveyor' ? info.name : (getMachineDef(type).toolbarName ?? info.name) }),
           el('span', { class: 'tool-cost', text: formatMoney(cost) }),

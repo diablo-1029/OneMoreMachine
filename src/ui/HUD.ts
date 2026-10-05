@@ -28,8 +28,10 @@ export class HUD {
   private readonly researchButton: HTMLButtonElement;
   private readonly starCount: HTMLElement;
   private shownMoney = -1;
+  private readonly root: HTMLElement;
 
   constructor(root: HTMLElement, actions: HudActions) {
+    this.root = root;
     this.money = el('span', { class: 'money-value', text: '$0' });
     this.income = el('span', { class: 'income-value', text: '+$0/min' });
 
@@ -109,8 +111,7 @@ export class HUD {
       [el('span', { class: 'power-icon', html: ICONS.prestige }), this.starCount],
     );
 
-    root.append(
-      el('div', { class: 'topbar' }, [
+    const topbar = el('div', { class: 'topbar' }, [
         el('div', { class: 'topbar-group' }, [
           el('div', { class: 'pill money', title: 'Money' }, [el('span', { class: 'coin' }), this.money]),
           el(
@@ -146,8 +147,21 @@ export class HUD {
             attrs: { type: 'button', 'aria-label': 'Settings' },
           }),
         ]),
-      ]),
-    );
+    ]);
+    root.append(topbar);
+    this.trackHeight(topbar);
+  }
+
+  /**
+   * Publishes where the top bar ends as a CSS variable. The bar wraps to two rows on narrow
+   * windows, and the hint and drop-down panels position themselves just below it.
+   */
+  private trackHeight(topbar: HTMLElement): void {
+    const publish = () => {
+      this.root.style.setProperty('--topbar-bottom', `${topbar.offsetTop + topbar.offsetHeight}px`);
+    };
+    new ResizeObserver(publish).observe(topbar);
+    publish();
   }
 
   setStars(stars: number): void {

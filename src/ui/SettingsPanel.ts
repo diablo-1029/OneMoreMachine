@@ -1,4 +1,14 @@
 import type { GameSettings } from '../core/save/SaveSchema';
+import {
+  BELT_STYLES,
+  describeRequirement,
+  FLOOR_STYLES,
+  isCosmeticUnlocked,
+  LIGHT_STYLES,
+  type CosmeticChoice,
+  type CosmeticProgress,
+  type CosmeticRequirement,
+} from '../data/cosmetics';
 import { el } from './dom';
 
 export interface SettingsActions {
@@ -8,6 +18,8 @@ export interface SettingsActions {
   /** In-game only: these are omitted on the main menu. */
   onSaveNow?: () => void;
   onMainMenu?: () => void;
+  /** What the current factory has earned, for unlocking cosmetics. Omitted on the main menu. */
+  getProgress?: () => CosmeticProgress;
 }
 
 const CONTROLS: [string, string][] = [
@@ -18,7 +30,7 @@ const CONTROLS: [string, string][] = [
   ['W A S D', 'Pan'],
   ['Q / E', 'Rotate view'],
   ['R', 'Rotate piece'],
-  ['1 – 8', 'Build tools'],
+  ['1 – 9, 0', 'Build tools'],
   ['F', 'Pick tool under cursor'],
   ['X', 'Delete tool'],
   ['B', 'Bottleneck view'],
@@ -35,6 +47,12 @@ const CONTROLS: [string, string][] = [
 /** Modal for audio and graphics options, with a controls reference. */
 export class SettingsPanel {
   private readonly overlay: HTMLElement;
+  private readonly cosmeticButtons: {
+    button: HTMLButtonElement;
+    key: keyof CosmeticChoice;
+    id: string;
+    requires: CosmeticRequirement;
+  }[] = [];
 
   constructor(
     root: HTMLElement,
@@ -59,6 +77,30 @@ export class SettingsPanel {
       return el('label', { class: 'setting' }, [el('span', { text: label }), input]);
     };
 
+    // One row of choices per kind of cosmetic. Locked ones stay visible, with what they need.
+    const cosmeticRow = (
+      label: string,
+      key: keyof CosmeticChoice,
+      styles: { id: string; name: string; requires: CosmeticRequirement }[],
+    ) => {
+      const choices = el('div', { class: 'cosmetic-choices' });
+      for (const style of styles) {
+        const button = el('button', {
+          class: 'recipe-choice',
+          text: style.name,
+          attrs: { type: 'button' },
+          onClick: () => {
+            this.settings.cosmetics[key] = style.id;
+            actions.onChange(this.settings);
+            this.refreshCosmetics();
+          },
+        });
+        this.cosmeticButtons.push({ button, key, id: style.id, requires: style.requires });
+        choices.append(button);
+      }
+      return el('div', { class: 'setting cosmetic-setting' }, [el('span', { text: label }), choices]);
+    };
+
     const buttons: HTMLElement[] = [];
     if (actions.onSaveNow) {
       buttons.push(el('button', { class: 'button', text: 'Save now', attrs: { type: 'button' }, onClick: actions.onSaveNow }));
@@ -81,6 +123,10 @@ export class SettingsPanel {
       toggle('Sound effects', 'sfx'),
       toggle('Music', 'music'),
       toggle('Shadows', 'shadows'),
+      el('h3', { class: 'modal-subtitle', text: 'Look' }),
+      cosmeticRow('Floor', 'floor', FLOOR_STYLES),
+      cosmeticRow('Belts', 'belt', BELT_STYLES),
+      cosmeticRow('Light', 'light', LIGHT_STYLES),
       el('h3', { class: 'modal-subtitle', text: 'Controls' }),
       el(
         'div',
@@ -104,7 +150,19 @@ export class SettingsPanel {
     return !this.overlay.classList.contains('hidden');
   }
 
+  /** Marks the current choices and greys out anything the factory has not unlocked yet. */
+  private refreshCosmetics(): void {
+    const progress = this.actions.getProgress?.() ?? null;
+    for (const { button, key, id, requires } of this.cosmeticButtons) {
+      const unlocked = isCosmeticUnlocked(requires, progress);
+      button.disabled = !unlocked;
+      button.classList.toggle('active', unlocked && this.settings.cosmetics[key] === id);
+      button.title = unlocked ? '' : progress ? `Unlocks at ${describeRequirement(requires)}` : `Unlocks in play, at ${describeRequirement(requires)}`;
+    }
+  }
+
   open(): void {
+    this.refreshCosmetics();
     this.overlay.classList.remove('hidden');
     this.actions.onOpenChange?.(true);
   }

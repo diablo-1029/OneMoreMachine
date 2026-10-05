@@ -12,6 +12,7 @@ import { TickSystem, type GameSpeed } from '../core/game/TickSystem';
 import { currentHint } from '../core/game/Tutorial';
 import type { SaveManager } from '../core/save/SaveManager';
 import type { GameSettings } from '../core/save/SaveSchema';
+import type { BeltStyle, CosmeticProgress } from '../data/cosmetics';
 import { InputManager } from '../input/InputManager';
 import { PlacementController } from '../input/PlacementController';
 import { BottleneckOverlay } from '../rendering/BottleneckOverlay';
@@ -245,6 +246,7 @@ export class GameSession {
         this.requestSave();
       },
       onOpenChange: (open) => this.input.setEnabled(!open),
+      getProgress: () => this.cosmeticProgress(),
       onSaveNow: () => {
         this.save();
         this.notifications.toast('Factory saved');
@@ -336,6 +338,8 @@ export class GameSession {
       );
       this.requestSave();
       this.achievementsPanel.update();
+      // A chosen cosmetic may just have become available.
+      this.ctx.onSettingsChanged(this.ctx.settings);
     });
     events.on('contractCompleted', (contract) => {
       audio.play('contract');
@@ -369,6 +373,17 @@ export class GameSession {
       this.ctx.audio.play('error');
       if (result.reason === 'cannot_afford') this.notifications.toast('Not enough money');
     }
+  }
+
+  // ----------------------------------------------------------- cosmetics
+
+  /** What this factory has earned towards unlocking cosmetics. */
+  cosmeticProgress(): CosmeticProgress {
+    return { achievements: this.sim.state.achievements.length, stars: this.sim.state.prestige.stars };
+  }
+
+  setBeltStyle(style: BeltStyle): void {
+    this.conveyors.setBeltStyle(style);
   }
 
   // ------------------------------------------------------------ prestige

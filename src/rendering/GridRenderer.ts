@@ -1,7 +1,6 @@
 import * as THREE from 'three';
+import { FLOOR_STYLES, type FloorStyle } from '../data/cosmetics';
 import { cellCenterX, cellCenterZ } from './WorldMapping';
-
-const TILE_COLORS = [0xb9bec6, 0xafb5be];
 
 /** The buildable factory floor: a raised concrete foundation topped with instanced tiles. */
 export class GridRenderer {
@@ -11,13 +10,39 @@ export class GridRenderer {
   private readonly tileMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
   private readonly foundationMaterial = new THREE.MeshLambertMaterial({ color: 0x8d939c });
   private readonly trimMaterial = new THREE.MeshLambertMaterial({ color: 0x6f7682 });
+  private style: FloorStyle = FLOOR_STYLES[0];
+  private width = 0;
+  private height = 0;
 
   constructor(scene: THREE.Scene) {
     scene.add(this.group);
   }
 
+  /** Repaints the floor in another style without rebuilding it. */
+  setStyle(style: FloorStyle): void {
+    if (style === this.style) return;
+    this.style = style;
+    this.paint();
+  }
+
+  private paint(): void {
+    this.foundationMaterial.color.setHex(this.style.foundation);
+    this.trimMaterial.color.setHex(this.style.trim);
+    if (!this.tiles) return;
+    const color = new THREE.Color();
+    let index = 0;
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        this.tiles.setColorAt(index++, color.setHex(this.style.tiles[(x + y) % 2]));
+      }
+    }
+    if (this.tiles.instanceColor) this.tiles.instanceColor.needsUpdate = true;
+  }
+
   /** (Re)builds the floor for a grid size. Called once per factory, and again on expansion. */
   build(width: number, height: number): void {
+    this.width = width;
+    this.height = height;
     for (const child of [...this.group.children]) {
       this.group.remove(child);
       if (child instanceof THREE.Mesh && child.geometry !== this.tileGeometry) child.geometry.dispose();
@@ -47,7 +72,7 @@ export class GridRenderer {
       for (let x = 0; x < width; x++) {
         matrix.makeTranslation(cellCenterX(x), -0.03, cellCenterZ(y));
         tiles.setMatrixAt(index, matrix);
-        tiles.setColorAt(index, color.setHex(TILE_COLORS[(x + y) % 2]));
+        tiles.setColorAt(index, color.setHex(this.style.tiles[(x + y) % 2]));
         index++;
       }
     }
@@ -56,5 +81,6 @@ export class GridRenderer {
     tiles.frustumCulled = false;
     this.group.add(tiles);
     this.tiles = tiles;
+    this.paint();
   }
 }

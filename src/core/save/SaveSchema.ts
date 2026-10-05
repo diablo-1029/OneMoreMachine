@@ -1,3 +1,4 @@
+import { DEFAULT_COSMETICS, type CosmeticChoice } from '../../data/cosmetics';
 import type { ContractState } from '../contracts/Contracts';
 import type { ItemState } from '../factory/ItemState';
 import type { MachineState } from '../factory/MachineState';
@@ -8,6 +9,8 @@ export interface GameSettings {
   sfx: boolean;
   music: boolean;
   shadows: boolean;
+  /** The chosen floor, belt and lighting styles. */
+  cosmetics: CosmeticChoice;
 }
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -15,6 +18,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   sfx: true,
   music: true,
   shadows: true,
+  cosmetics: { ...DEFAULT_COSMETICS },
 };
 
 export interface SavedConveyor {

@@ -9,6 +9,7 @@ import { GridRenderer } from '../rendering/GridRenderer';
 import { Renderer, WebGLUnavailableError } from '../rendering/Renderer';
 import { SceneManager } from '../rendering/SceneManager';
 import { setWorldGrid } from '../rendering/WorldMapping';
+import { resolveCosmetics } from '../data/cosmetics';
 import { DEFAULT_ENVIRONMENT, getEnvironment } from '../data/environments';
 import { el } from '../ui/dom';
 import { MainMenu } from '../ui/MainMenu';
@@ -110,6 +111,11 @@ export class App {
   private applySettings(settings: GameSettings): void {
     this.audio.applySettings(settings);
     this.sceneManager.lighting.setShadows(settings.shadows);
+    // Choices the current factory has not unlocked fall back to the defaults.
+    const look = resolveCosmetics(settings.cosmetics, this.session?.cosmeticProgress() ?? null);
+    this.grid.setStyle(look.floor);
+    this.sceneManager.lighting.setStyle(look.light);
+    this.session?.setBeltStyle(look.belt);
     this.saveManager.saveSettings(settings);
   }
 
@@ -161,6 +167,8 @@ export class App {
       },
     });
     this.menu.hide();
+    // Now that there is a factory, cosmetics it has unlocked can be shown.
+    this.applySettings(this.settings);
 
     if (import.meta.env.DEV) {
       // Console handle for poking at the simulation during development.
