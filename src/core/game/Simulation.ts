@@ -17,9 +17,10 @@ import { footprintCells, getMachineDef, worldPorts } from '../factory/MachineReg
 import { createMachineState, type MachineState } from '../factory/MachineState';
 import { machineAccepts, machineStatus, updateCrafter } from '../factory/MachineSystem';
 import { routerAccepts, routerEntryLimit, routerInsert, updateRouter, type RouterHooks } from '../factory/RouterSystem';
+import { bridgeAccepts, bridgeEntryLimit, bridgeInsert, updateBridge } from '../factory/BridgeSystem';
 import { computePower, type PowerStatus } from '../power/Power';
 import { FactoryMetrics } from '../stats/FactoryMetrics';
-import { rotateDir, type Direction } from '../grid/GridPosition';
+import { oppositeDir, rotateDir, type Direction } from '../grid/GridPosition';
 import { validatePlacement, type PlacementFailure } from '../grid/PlacementValidator';
 import { getRecipe, hasRecipe, recipesFor } from '../recipes/RecipeRegistry';
 import {
@@ -118,6 +119,8 @@ export class Simulation {
       const behavior = getMachineDef(machine.type).behavior;
       if (behavior === 'router') {
         updateRouter(factory, machine, dt, this.hooks);
+      } else if (behavior === 'bridge') {
+        updateBridge(factory, machine, dt, this.hooks);
       } else if (behavior === 'storage') {
         this.pushOutputs(machine);
       } else if (behavior === 'crafter') {
@@ -223,6 +226,11 @@ export class Simulation {
     switch (def.behavior) {
       case 'router':
         return routerAccepts(this.state.factory, machine, port);
+      case 'bridge': {
+        // The hatch it would come in through says which way it is travelling.
+        const side = worldPorts(def, machine.gridX, machine.gridY, machine.rotation)[port].side;
+        return bridgeAccepts(machine, oppositeDir(side));
+      }
       case 'storage':
         return machine.enabled && machine.stored.length < (def.storageCapacity ?? 0);
       default:
@@ -236,6 +244,9 @@ export class Simulation {
     switch (getMachineDef(machine.type).behavior) {
       case 'router':
         routerInsert(this.state.factory, machine, port, from, resourceId, item);
+        break;
+      case 'bridge':
+        bridgeInsert(this.state.factory, machine, from, resourceId, item);
         break;
       case 'storage':
         machine.stored.push(resourceId);
@@ -260,8 +271,12 @@ export class Simulation {
   private readonly hooks: RouterHooks = {
     deliver: (machine, resourceId, port, from, item) => this.deliver(machine, resourceId, port, from, item),
     canDeliver: (machine, resourceId, port) => this.canDeliver(machine, resourceId, port),
-    entryLimit: (machine) =>
-      getMachineDef(machine.type).behavior === 'router' ? routerEntryLimit(machine) : Infinity,
+    entryLimit: (machine, from) => {
+      const behavior = getMachineDef(machine.type).behavior;
+      if (behavior === 'router') return routerEntryLimit(machine);
+      if (behavior === 'bridge') return bridgeEntryLimit(machine, from);
+      return Infinity;
+    },
   };
 
   /** The next item a machine wants to send out, if any: a finished product, or the oldest stored item. */

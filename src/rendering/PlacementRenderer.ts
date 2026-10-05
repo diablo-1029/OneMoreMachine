@@ -146,7 +146,8 @@ export class PlacementRenderer {
     this.setFootprint(gridX, gridY, w, h, color, 0.28);
 
     // Arrows just outside each port: green pointing in for inputs, orange pointing out for outputs.
-    const ports = worldPorts(def, gridX, gridY, rotation);
+    // A bridge is open on every side, so port arrows would only be clutter.
+    const ports = def.behavior === 'bridge' ? [] : worldPorts(def, gridX, gridY, rotation);
     ports.forEach((port, i) => {
       let arrow = this.arrows[i];
       if (!arrow) {

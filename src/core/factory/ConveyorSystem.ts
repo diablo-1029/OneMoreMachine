@@ -164,7 +164,7 @@ export interface TransferHooks {
    * How far an item approaching the machine may advance on its own tile (1 = the edge).
    * Lets routers keep belt spacing across the boundary; Infinity for everything else.
    */
-  entryLimit: (machine: MachineState) => number;
+  entryLimit: (machine: MachineState, from: Direction) => number;
 }
 
 /** Advances every belt by `dt`. */
@@ -202,7 +202,7 @@ export function updateConveyors(
         }
       } else {
         const machineTarget = index === 0 && target?.kind === 'machine' ? target : null;
-        if (machineTarget) progress = Math.min(progress, hooks.entryLimit(machineTarget.machine));
+        if (machineTarget) progress = Math.min(progress, hooks.entryLimit(machineTarget.machine, conveyor.direction));
         if (progress >= 1) {
           if (
             machineTarget &&

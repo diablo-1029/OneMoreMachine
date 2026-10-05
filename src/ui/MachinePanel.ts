@@ -221,6 +221,7 @@ export class MachinePanel {
         this.fillChips(this.output, 'seller-out', [], 'Money');
         setText(this.rate, 'As fast as items arrive');
         break;
+      case 'bridge':
       case 'router':
         this.showRows(['status', 'input', 'rate']);
         setText(this.inputLabel, 'Crossing');

@@ -115,6 +115,27 @@ export const MACHINE_DEFINITIONS: MachineDefinition[] = [
     outputCapacity: 0,
   },
   {
+    type: 'bridge',
+    name: 'Bridge',
+    description: 'Lets two belts cross. Items go straight over or under and never mix.',
+    cost: BALANCE.costs.bridge,
+    width: 1,
+    height: 1,
+    behavior: 'bridge',
+    // Open on every side: whatever comes in leaves by the opposite one.
+    ports: [
+      { localX: 0, localY: 0, side: 0, type: 'input' },
+      { localX: 0, localY: 0, side: 1, type: 'input' },
+      { localX: 0, localY: 0, side: 2, type: 'input' },
+      { localX: 0, localY: 0, side: 3, type: 'input' },
+      { localX: 0, localY: 0, side: 0, type: 'output' },
+      { localX: 0, localY: 0, side: 1, type: 'output' },
+      { localX: 0, localY: 0, side: 2, type: 'output' },
+      { localX: 0, localY: 0, side: 3, type: 'output' },
+    ],
+    outputCapacity: 0,
+  },
+  {
     type: 'storage',
     name: 'Storage',
     description: 'Buffers up to 200 items and releases the oldest first.',
@@ -160,6 +181,7 @@ export const BUILD_ORDER = [
   'seller',
   'splitter',
   'merger',
+  'bridge',
   'storage',
   'wind_turbine',
 ] as const;

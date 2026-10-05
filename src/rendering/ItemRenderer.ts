@@ -3,6 +3,8 @@ import type { FactoryState } from '../core/factory/FactoryState';
 import type { ItemState } from '../core/factory/ItemState';
 import { DIR_VECTORS, type Direction } from '../core/grid/GridPosition';
 import { RESOURCE_DEFINITIONS } from '../data/resources';
+import { getMachineDef } from '../core/factory/MachineRegistry';
+import { bridgeHeight } from '../machines/BridgeVisual';
 import { BELT_SURFACE_Y } from './ConveyorRenderer';
 import { gearGeometry, merge, paint } from './GeometryUtils';
 import { PALETTE, VERTEX_MATERIAL } from './Materials';
@@ -150,6 +152,9 @@ interface ItemTrack {
   z: number;
   prevX: number;
   prevZ: number;
+  /** Height above the normal belt surface; non-zero only on the raised lane of a bridge. */
+  y: number;
+  prevY: number;
   yaw: number;
   /** Seconds since the item first appeared; drives the grow-in. */
   age: number;
@@ -212,9 +217,20 @@ export class ItemRenderer {
       }
     }
     for (const machine of factory.machines.values()) {
+      if (machine.transit.length === 0) continue;
+      const bridge = getMachineDef(machine.type).behavior === 'bridge';
       for (const item of machine.transit) {
-        routerPosition(item);
-        this.record(item, scratch.x, scratch.z, item.to ?? item.from, animate);
+        if (bridge) {
+          // Straight across. The lane running along the machine's own Z axis is the raised one.
+          const out = DIR_VECTORS[item.from];
+          scratch.x = cellCenterX(item.tileX) + out.x * (item.progress - 0.5);
+          scratch.z = cellCenterZ(item.tileY) + out.y * (item.progress - 0.5);
+          const raised = (item.from + machine.rotation) % 2 === 1;
+          this.record(item, scratch.x, scratch.z, item.from, animate, raised ? bridgeHeight(item.progress) : 0);
+        } else {
+          routerPosition(item);
+          this.record(item, scratch.x, scratch.z, item.to ?? item.from, animate);
+        }
       }
     }
 
@@ -236,7 +252,7 @@ export class ItemRenderer {
     }
   }
 
-  private record(item: ItemState, x: number, z: number, heading: Direction, animate: boolean): void {
+  private record(item: ItemState, x: number, z: number, heading: Direction, animate: boolean, y = 0): void {
     let track = this.tracks.get(item.id);
     if (!track) {
       track = {
@@ -245,6 +261,8 @@ export class ItemRenderer {
         z,
         prevX: x,
         prevZ: z,
+        y,
+        prevY: y,
         yaw: -heading * (Math.PI / 2),
         age: animate ? 0 : APPEAR_SECONDS,
         seenAt: 0,
@@ -253,8 +271,10 @@ export class ItemRenderer {
     } else {
       track.prevX = track.x;
       track.prevZ = track.z;
+      track.prevY = track.y;
       track.x = x;
       track.z = z;
+      track.y = y;
       const dx = x - track.prevX;
       const dz = z - track.prevZ;
       if (dx * dx + dz * dz > 1e-8) track.yaw = Math.atan2(-dz, dx);
@@ -286,6 +306,7 @@ export class ItemRenderer {
         track.prevZ + (track.z - track.prevZ) * alpha,
         track.yaw,
         time,
+        track.prevY + (track.y - track.prevY) * alpha,
         // Ease out so the item pops up quickly and settles.
         1 - (1 - grow) * (1 - grow),
       );
@@ -302,7 +323,7 @@ export class ItemRenderer {
       }
       // Velocity is per tick; carry the item a little further in, as if swallowed by the hatch.
       const drift = 1 + t * 2.5;
-      this.place(ghost.resourceId, ghost.id, ghost.x + ghost.vx * drift, ghost.z + ghost.vz * drift, ghost.yaw, time, 1 - t);
+      this.place(ghost.resourceId, ghost.id, ghost.x + ghost.vx * drift, ghost.z + ghost.vz * drift, ghost.yaw, time, 0, 1 - t);
     }
 
     for (const batch of this.batches.values()) {
@@ -311,11 +332,20 @@ export class ItemRenderer {
     }
   }
 
-  private place(resourceId: string, id: number, x: number, z: number, travelYaw: number, time: number, scale: number): void {
+  private place(
+    resourceId: string,
+    id: number,
+    x: number,
+    z: number,
+    travelYaw: number,
+    time: number,
+    y: number,
+    scale: number,
+  ): void {
     const batch = this.batches.get(resourceId);
     if (!batch || batch.count >= MAX_ITEMS_PER_RESOURCE) return;
     const { spec } = batch;
-    this.dummy.position.set(x, BELT_SURFACE_Y + spec.lift * scale, z);
+    this.dummy.position.set(x, BELT_SURFACE_Y + y + spec.lift * scale, z);
     // Ore gets a fixed pseudo-random heading so a line of it does not look stamped out.
     const yaw = spec.alignToTravel ? travelYaw : spec.spin !== 0 ? time * spec.spin + id : id * 2.4;
     this.dummy.rotation.set(0, yaw, 0);

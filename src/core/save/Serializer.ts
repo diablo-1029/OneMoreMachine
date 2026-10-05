@@ -219,7 +219,7 @@ export function restoreGame(raw: unknown): GameState {
 
     must(Array.isArray(entry.transit ?? []), 'Invalid transit list');
     for (const raw of (entry.transit ?? []) as unknown[]) {
-      must(def.behavior === 'router', 'Only routers carry items');
+      must(def.behavior === 'router' || def.behavior === 'bridge', 'Only routers and bridges carry items');
       const item = parseItem(raw);
       item.tileX = machine.gridX;
       item.tileY = machine.gridY;

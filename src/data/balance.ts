@@ -9,6 +9,7 @@ export const BALANCE = {
     seller: 50,
     splitter: 30,
     merger: 30,
+    bridge: 20,
     storage: 100,
     wind_turbine: 200,
     fabricator: 400,

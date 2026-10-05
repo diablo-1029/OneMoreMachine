@@ -30,10 +30,10 @@ export const RESEARCH_NODES: ResearchNode[] = [
   {
     id: 'logistics',
     name: 'Logistics',
-    description: 'Share one belt between several machines, or join several into one.',
+    description: 'Share one belt between several machines, join several into one, or let two cross.',
     cost: 300,
     requires: [],
-    unlocks: { machines: ['splitter', 'merger'], recipes: [] },
+    unlocks: { machines: ['splitter', 'merger', 'bridge'], recipes: [] },
   },
   {
     id: 'warehousing',

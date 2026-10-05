@@ -37,6 +37,15 @@ export function upstreamMachines(factory: FactoryState, machine: MachineState): 
     }
     const source = factory.machineAt(sx, sy);
     if (!source) return;
+    if (getMachineDef(source.type).behavior === 'bridge') {
+      // Straight through: only the belt on the far side of the same lane feeds this one.
+      const key = `bridge:${sx},${sy},${travel % 2}`;
+      if (!seenCells.has(key)) {
+        seenCells.add(key);
+        walkBack(sx, sy, travel);
+      }
+      return;
+    }
     const ports = worldPorts(getMachineDef(source.type), source.gridX, source.gridY, source.rotation);
     if (!ports.some((p) => p.type === 'output' && p.x === sx && p.y === sy && p.side === travel)) return;
     if (seenMachines.has(source.id)) return;
@@ -73,6 +82,15 @@ export function downstreamMachines(factory: FactoryState, machine: MachineState)
       if (seenCells.has(key)) return;
       seenCells.add(key);
       follow(conveyor.gridX, conveyor.gridY, conveyor.direction);
+      return;
+    }
+    if (getMachineDef(target.machine.type).behavior === 'bridge') {
+      // Straight over: the item carries on in the same direction on the far side.
+      const key = `bridge:${target.machine.gridX},${target.machine.gridY},${direction % 2}`;
+      if (!seenCells.has(key)) {
+        seenCells.add(key);
+        follow(target.machine.gridX, target.machine.gridY, direction);
+      }
       return;
     }
     if (seenMachines.has(target.machine.id)) return;

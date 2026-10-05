@@ -22,10 +22,11 @@ export interface MachinePort {
  * seller:  consumes any resource and converts it to money.
  * router:  a belt-speed junction; items cross it and leave through an output chosen in turn
  *          (one input + several outputs = splitter, several inputs + one output = merger).
+ * bridge:  lets two belts cross; items go straight over or under without mixing.
  * storage: buffers any resource and releases the oldest first.
  * generator: adds power to the factory's shared pool; handles no items.
  */
-export type MachineBehavior = 'crafter' | 'seller' | 'router' | 'storage' | 'generator';
+export type MachineBehavior = 'crafter' | 'seller' | 'router' | 'bridge' | 'storage' | 'generator';
 
 export interface MachineDefinition {
   type: MachineType;

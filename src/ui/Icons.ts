@@ -53,6 +53,12 @@ export const ICONS: Record<string, string> = {
       '<path d="M21 16h8" stroke="#ff9d3c" stroke-width="2.6"/>' +
       '<path d="M26 13l3 3-3 3" stroke="#ff9d3c" stroke-width="2"/>',
   ),
+  bridge: svg(
+    '<path d="M3 16h26" stroke="#7b869b" stroke-width="5"/>' +
+      '<path d="M16 3v26" stroke="#232a36" stroke-width="9"/>' +
+      '<path d="M16 3v26" stroke="#f2b632" stroke-width="5"/>' +
+      '<path d="M13.500 8l2.500-3 2.500 3M24 13.500l3 2.500-3 2.500" stroke="#232a36" stroke-width="1.600"/>',
+  ),
   storage: svg(
     '<path d="M4 13l12-7 12 7v13H4z" fill="#7f8ea8"/>' +
       '<path d="M4 13l12-7 12 7" stroke="#566074" stroke-width="2.4"/>' +

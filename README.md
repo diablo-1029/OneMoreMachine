@@ -55,7 +55,7 @@ without touching your real factory.
 
 - **Production**: ore → plates → gears, a copper line for wire, then motors, steel, circuits,
   computers and robots.
-- **Logistics**: conveyors, splitters, mergers and storage.
+- **Logistics**: conveyors, splitters, mergers, bridges (so belts can cross) and storage.
 - **Bottleneck tools**: per-machine efficiency, a bottleneck view, and plain-language advice
   on what to add.
 - **Progression**: research, machine upgrades, power, factory expansion, contracts,
