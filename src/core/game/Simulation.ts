@@ -1,4 +1,5 @@
 import type { AchievementDefinition } from '../../data/achievements';
+import { getEnvironment, type EnvironmentDefinition } from '../../data/environments';
 import { checkAchievements } from '../achievements/Achievements';
 import { blueprintCells, blueprintCost, type Blueprint } from '../blueprints/Blueprint';
 import { fillContracts, type Contract } from '../contracts/Contracts';
@@ -86,12 +87,15 @@ export class Simulation {
   private readonly network = new ConveyorNetwork();
   /** Supply, demand and the resulting machine speed, as of the last tick. Derived, never saved. */
   power: PowerStatus = { supply: 0, demand: 0, ratio: 1 };
+  /** The site this factory stands on, with its modifiers. */
+  readonly environment: EnvironmentDefinition;
   private tutorialTimer = 0;
   private achievementTimer = 0;
 
   constructor(readonly state: GameState) {
+    this.environment = getEnvironment(state.environment);
     fillContracts(state.contracts, state.research);
-    this.power = computePower(state.factory, state.power);
+    this.power = computePower(state.factory, state.power, this.environment);
   }
 
   // ---------------------------------------------------------------- tick
@@ -106,7 +110,7 @@ export class Simulation {
     updateConveyors(factory, this.network, dt, this.hooks);
 
     // Short of power, every crafting machine runs slower by the same proportion.
-    this.power = computePower(factory, this.state.power);
+    this.power = computePower(factory, this.state.power, this.environment);
     const craftDt = dt * this.power.ratio;
 
     for (const machine of factory.machines.values()) {
@@ -116,7 +120,7 @@ export class Simulation {
       } else if (behavior === 'storage') {
         this.pushOutputs(machine);
       } else if (behavior === 'crafter') {
-        const finished = updateCrafter(machine, craftDt);
+        const finished = updateCrafter(machine, craftDt, this.environment);
         if (finished) {
           for (const output of finished.outputs) {
             this.state.stats.produced[output.resourceId] =

@@ -25,6 +25,11 @@ const MIGRATIONS: Record<number, (save: RawSave) => RawSave> = {
     save.research = [...LEGACY_RESEARCH];
     return save;
   },
+  // v8 added environments; every earlier factory stands on the original meadow.
+  7: (save) => {
+    save.environment = 'meadow';
+    return save;
+  },
   // v7 added achievements. Any already earned are unlocked, and paid, on the first check.
   6: (save) => {
     save.achievements = [];

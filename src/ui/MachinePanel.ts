@@ -20,6 +20,9 @@ function resourceChip(resourceId: string, amount: string): HTMLElement {
   return el('span', { class: 'chip' }, [dot, `${amount} ${resource.name}`]);
 }
 
+/** Trims the rounding noise that site modifiers leave on otherwise tidy numbers (21.000000000000004). */
+const tidy = (value: number) => String(Number(value.toFixed(2)));
+
 type RowKey = 'status' | 'level' | 'power' | 'makes' | 'recipe' | 'input' | 'output' | 'progress' | 'rate' | 'efficiency';
 
 /** Right-hand panel describing the selected machine or belt. */
@@ -226,7 +229,7 @@ export class MachinePanel {
         break;
       case 'generator':
         this.showRows(['status', 'power']);
-        setText(this.power, machine.enabled ? `Supplies ${machinePowerOutput(machine)}` : 'Switched off');
+        setText(this.power, machine.enabled ? `Supplies ${tidy(machinePowerOutput(machine, this.sim.environment))}` : 'Switched off');
         break;
       case 'storage': {
         this.showRows(['status', 'input', 'progress']);
@@ -250,19 +253,19 @@ export class MachinePanel {
     if (choices.length > 1) rows.splice(3, 0, 'makes');
 
     const { ratio } = this.sim.power;
-    const draw = machinePowerUse(machine);
+    const draw = machinePowerUse(machine, this.sim.environment);
     setText(
       this.power,
       !machine.enabled
         ? 'Switched off, uses none'
         : ratio < 0.995
-          ? `Uses ${draw} · short, running at ${Math.round(ratio * 100)}%`
-          : `Uses ${draw}`,
+          ? `Uses ${tidy(draw)} · short, running at ${Math.round(ratio * 100)}%`
+          : `Uses ${tidy(draw)}`,
     );
     this.power.dataset.short = String(machine.enabled && ratio < 0.995);
 
-    const speed = machineSpeed(machine);
-    setText(this.level, `${getUpgradeLevel(machine.level).name} · ${speed === 1 ? 'standard speed' : `${speed}× speed`}`);
+    const speed = machineSpeed(machine, this.sim.environment);
+    setText(this.level, `${getUpgradeLevel(machine.level).name} · ${speed === 1 ? 'standard speed' : `${tidy(speed)}× speed`}`);
     const offer = this.sim.upgradeOffer(machine);
     this.upgradeButton.classList.toggle('hidden', offer === null);
     if (offer) {
@@ -318,7 +321,7 @@ export class MachinePanel {
     this.progressFill.style.width = `${Math.round((machine.active ? machine.progress : 0) * 100)}%`;
 
     const { metrics } = this.sim;
-    const nominal = nominalRatePerMinute(machine);
+    const nominal = nominalRatePerMinute(machine, this.sim.environment);
     if (nominal) {
       const actual = Math.round(metrics.machineOutputRate(machine.id));
       setText(this.rate, `${actual} of ${Math.round(nominal.perMinute)} ${getResource(nominal.resourceId).name}/min`);

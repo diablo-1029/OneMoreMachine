@@ -1,3 +1,4 @@
+import { getEnvironment } from '../../data/environments';
 import { isResource } from '../../data/resources';
 import { MAX_MACHINE_LEVEL } from '../../data/upgrades';
 import { isAchievementId } from '../achievements/Achievements';
@@ -50,6 +51,7 @@ export function serializeGame(state: GameState, settings: GameSettings): SaveDat
     research: [...state.research],
     power: { baseSupply: state.power.baseSupply },
     achievements: [...state.achievements],
+    environment: state.environment,
     contracts: {
       active: state.contracts.active.map((contract) => ({ ...contract })),
       completed: state.contracts.completed,
@@ -287,6 +289,8 @@ export function restoreGame(raw: unknown): GameState {
       ? [...new Set(save.research.filter((id): id is string => typeof id === 'string' && isResearchId(id)))]
       : [],
     contracts: parseContracts(save.contracts),
+    // An environment from a newer version falls back to the standard one rather than failing the load.
+    environment: getEnvironment(typeof save.environment === 'string' ? save.environment : '').id,
     achievements: Array.isArray(save.achievements)
       ? [...new Set(save.achievements.filter((id): id is string => typeof id === 'string' && isAchievementId(id)))]
       : [],

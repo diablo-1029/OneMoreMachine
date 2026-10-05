@@ -3,9 +3,11 @@ import * as THREE from 'three';
 /** Soft sky fill plus one shadow-casting sun, angled so shadows fall towards the camera's right. */
 export class Lighting {
   readonly sun: THREE.DirectionalLight;
+  private readonly sky: THREE.HemisphereLight;
 
   constructor(scene: THREE.Scene) {
-    scene.add(new THREE.HemisphereLight(0xffffff, 0xb7c79a, 1.9));
+    this.sky = new THREE.HemisphereLight(0xffffff, 0xb7c79a, 1.9);
+    scene.add(this.sky);
 
     this.sun = new THREE.DirectionalLight(0xfff4e0, 2.3);
     this.sun.position.set(-11, 20, 9);
@@ -16,6 +18,12 @@ export class Lighting {
     scene.add(this.sun);
     scene.add(this.sun.target);
     this.setCoverage(12);
+  }
+
+  /** Tints the light for an environment: the colour bounced up from its ground, and its sunlight. */
+  setColors(bounce: number, sun: number): void {
+    this.sky.groundColor.setHex(bounce);
+    this.sun.color.setHex(sun);
   }
 
   /** Sizes the shadow frustum to the factory plus a margin of scenery. */

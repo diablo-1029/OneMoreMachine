@@ -9,6 +9,7 @@ import { GridRenderer } from '../rendering/GridRenderer';
 import { Renderer, WebGLUnavailableError } from '../rendering/Renderer';
 import { SceneManager } from '../rendering/SceneManager';
 import { setWorldGrid } from '../rendering/WorldMapping';
+import { DEFAULT_ENVIRONMENT, getEnvironment } from '../data/environments';
 import { el } from '../ui/dom';
 import { MainMenu } from '../ui/MainMenu';
 import { SettingsPanel } from '../ui/SettingsPanel';
@@ -31,6 +32,8 @@ export class App {
   private menu!: MainMenu;
   private session: GameSession | null = null;
   private starting = false;
+  /** The environment currently drawn: the chosen one in play, or the one being previewed on the menu. */
+  private environmentId = DEFAULT_ENVIRONMENT;
 
   constructor(
     private readonly viewport: HTMLElement,
@@ -69,7 +72,8 @@ export class App {
     });
     this.menu = new MainMenu(this.uiRoot, {
       onContinue: () => void this.continueGame(),
-      onNewFactory: () => void this.newGame(),
+      onNewFactory: (environmentId) => void this.newGame(environmentId),
+      onPreviewEnvironment: (environmentId) => this.showEnvironment(environmentId),
       onSettings: () => menuSettings.open(),
     });
     this.menu.show(await this.saveManager.hasSave());
@@ -80,10 +84,21 @@ export class App {
     ).start();
   }
 
+  /** Redraws the scenery for another environment, keeping the floor as it is. */
+  private showEnvironment(environmentId: string): void {
+    if (this.session || environmentId === this.environmentId) return;
+    this.environmentId = environmentId;
+    const { theme } = getEnvironment(environmentId);
+    this.environment.build(DEFAULT_GRID_SIZE, DEFAULT_GRID_SIZE, theme);
+    this.sceneManager.setTheme(theme);
+  }
+
   private buildWorld(width: number, height: number): void {
+    const { theme } = getEnvironment(this.environmentId);
     setWorldGrid(width, height);
     this.grid.build(width, height);
-    this.environment.build(width, height);
+    this.environment.build(width, height, theme);
+    this.sceneManager.setTheme(theme);
     this.sceneManager.lighting.setCoverage(Math.max(width, height));
     this.camera.setWorldSize(Math.max(width, height));
   }
@@ -108,16 +123,20 @@ export class App {
     }
   }
 
-  private async newGame(): Promise<void> {
+  private async newGame(environmentId: string): Promise<void> {
     if (this.starting) return;
     this.starting = true;
     await this.saveManager.clear();
-    this.startSession(createNewGame(), 0);
+    this.startSession(createNewGame(getEnvironment(environmentId).id), 0);
   }
 
   private startSession(state: GameState, awaySeconds: number): void {
     const { width, height } = state.factory.grid;
-    if (width !== DEFAULT_GRID_SIZE || height !== DEFAULT_GRID_SIZE) this.buildWorld(width, height);
+    const sizeChanged = width !== DEFAULT_GRID_SIZE || height !== DEFAULT_GRID_SIZE;
+    if (sizeChanged || state.environment !== this.environmentId) {
+      this.environmentId = state.environment;
+      this.buildWorld(width, height);
+    }
     this.camera.settle();
     this.session = new GameSession(state, {
       renderer: this.renderer,

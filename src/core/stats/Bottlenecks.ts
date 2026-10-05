@@ -1,3 +1,4 @@
+import { getEnvironment } from '../../data/environments';
 import { RECIPES } from '../../data/recipes';
 import { getResource } from '../../data/resources';
 import type { FactoryState } from '../factory/FactoryState';
@@ -110,6 +111,9 @@ function jammedAtHatch(factory: FactoryState, machine: MachineState): string | n
 export function analyzeBottlenecks(state: GameState, metrics: FactoryMetrics): BottleneckFinding[] {
   const findings: BottleneckFinding[] = [];
   const machines = [...state.factory.machines.values()];
+  const environment = getEnvironment(state.environment);
+  /** What one standard machine running a recipe turns out per minute on this site. */
+  const siteRate = (recipe: Recipe) => (60 / recipe.duration) * (environment.speed[recipe.machineType] ?? 1);
 
   for (const machine of machines) {
     if (!machine.enabled || !machine.recipeId) continue;
@@ -118,7 +122,7 @@ export function analyzeBottlenecks(state: GameState, metrics: FactoryMetrics): B
     const shares = metrics.shares(machine.id);
     if (shares.observed < MIN_OBSERVED) continue;
     const recipe = getRecipe(machine.recipeId);
-    const craftsPerMinute = (60 / recipe.duration) * machineSpeed(machine);
+    const craftsPerMinute = (60 / recipe.duration) * machineSpeed(machine, environment);
 
     if (shares.waiting >= MIN_SHARE && recipe.inputs.length > 0) {
       // The scarcest input is the one the machine currently holds least of, relative to need.
@@ -150,7 +154,7 @@ export function analyzeBottlenecks(state: GameState, metrics: FactoryMetrics): B
         weight = SYMPTOM_WEIGHT;
       } else {
         const output = producer.outputs.find((o) => o.resourceId === input.resourceId)!;
-        const perProducer = (60 / producer.duration) * output.amount;
+        const perProducer = siteRate(producer) * output.amount;
         const extra = Math.max(1, Math.ceil(shortfall / perProducer - 0.05));
         fix = `${oneMore(extra, producer)} would keep it fed.`;
       }
@@ -182,7 +186,7 @@ export function analyzeBottlenecks(state: GameState, metrics: FactoryMetrics): B
       } else {
         const consumer = consumers[0];
         const input = consumer.inputs.find((i) => i.resourceId === output.resourceId)!;
-        const perConsumer = (60 / consumer.duration) * input.amount;
+        const perConsumer = siteRate(consumer) * input.amount;
         const extra = Math.max(1, Math.ceil(surplus / perConsumer - 0.05));
         fix = `${oneMore(extra, consumer)} could use the spare ${resource.name}.`;
       }
@@ -198,11 +202,11 @@ export function analyzeBottlenecks(state: GameState, metrics: FactoryMetrics): B
     }
   }
 
-  const power = computePower(state.factory, state.power);
+  const power = computePower(state.factory, state.power, environment);
   if (power.ratio < 0.995) {
     const shortfall = power.demand - power.supply;
     const turbine = getMachineDef('wind_turbine');
-    const turbines = Math.ceil(shortfall / (turbine.powerOutput ?? 1));
+    const turbines = Math.ceil(shortfall / ((turbine.powerOutput ?? 1) * environment.turbineOutput));
     findings.push({
       machineId: null,
       kind: 'power',

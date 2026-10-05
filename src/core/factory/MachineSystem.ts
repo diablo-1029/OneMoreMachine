@@ -1,4 +1,5 @@
 import { BALANCE } from '../../data/balance';
+import type { EnvironmentDefinition } from '../../data/environments';
 import { getUpgradeLevel } from '../../data/upgrades';
 import { getRecipe } from '../recipes/RecipeRegistry';
 import type { Recipe } from '../recipes/Recipe';
@@ -15,9 +16,12 @@ export const STATUS_LABELS: Record<MachineStatus, string> = {
   ready: 'Ready',
 };
 
-/** How many times faster than a newly built machine this one crafts. */
-export function machineSpeed(machine: MachineState): number {
-  return getUpgradeLevel(machine.level).speed;
+/**
+ * How many times faster than a standard machine this one crafts: its upgrade level, times
+ * whatever the factory's site does to machines of its type.
+ */
+export function machineSpeed(machine: MachineState, environment?: EnvironmentDefinition): number {
+  return getUpgradeLevel(machine.level).speed * (environment?.speed[machine.type] ?? 1);
 }
 
 function recipeOf(machine: MachineState): Recipe | null {
@@ -48,14 +52,14 @@ export function machineAccepts(machine: MachineState, resourceId: string): boole
  * Advances a crafter by `dt`. Returns the recipe when a craft completed this tick.
  * Works for any recipe shape, including input-less producers.
  */
-export function updateCrafter(machine: MachineState, dt: number): Recipe | null {
+export function updateCrafter(machine: MachineState, dt: number, environment?: EnvironmentDefinition): Recipe | null {
   if (!machine.enabled) return null;
   const recipe = recipeOf(machine);
   if (!recipe) return null;
 
   if (!machine.active && !tryStart(machine, recipe)) return null;
 
-  machine.progress += (dt * machineSpeed(machine)) / recipe.duration;
+  machine.progress += (dt * machineSpeed(machine, environment)) / recipe.duration;
   if (machine.progress < 1) return null;
 
   for (const output of recipe.outputs) {
@@ -91,12 +95,15 @@ export function machineStatus(machine: MachineState): MachineStatus {
 }
 
 /** Theoretical output per minute when the machine never stalls. */
-export function nominalRatePerMinute(machine: MachineState): { resourceId: string; perMinute: number } | null {
+export function nominalRatePerMinute(
+  machine: MachineState,
+  environment?: EnvironmentDefinition,
+): { resourceId: string; perMinute: number } | null {
   const recipe = recipeOf(machine);
   const output = recipe?.outputs[0];
   if (!recipe || !output) return null;
   return {
     resourceId: output.resourceId,
-    perMinute: (60 / recipe.duration) * output.amount * machineSpeed(machine),
+    perMinute: (60 / recipe.duration) * output.amount * machineSpeed(machine, environment),
   };
 }
