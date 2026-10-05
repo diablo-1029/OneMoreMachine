@@ -1,5 +1,12 @@
 import * as THREE from 'three';
 import type { AudioManager } from '../audio/AudioManager';
+import {
+  blueprintCost,
+  captureBlueprint,
+  isBlueprintEmpty,
+  rotateBlueprint,
+  type Blueprint,
+} from '../core/blueprints/Blueprint';
 import { buildCost } from '../core/economy/Pricing';
 import { isFedAt, resolveTarget } from '../core/factory/ConveyorSystem';
 import { getMachineDef, rotatedSize, worldPorts } from '../core/factory/MachineRegistry';
@@ -17,7 +24,11 @@ import { cellCenterX, cellCenterZ, worldToGridX, worldToGridY } from '../renderi
 export type Tool =
   | { mode: 'select' }
   | { mode: 'build'; type: BuildableType; rotation: Direction; recipeId?: string }
-  | { mode: 'delete' };
+  | { mode: 'delete' }
+  /** Drag out a rectangle to copy what is inside it. */
+  | { mode: 'copy' }
+  /** Stamp down a copied or saved layout. */
+  | { mode: 'paste'; blueprint: Blueprint };
 
 export type Selection = { kind: 'machine' | 'conveyor'; id: string } | null;
 
@@ -57,6 +68,7 @@ const FAILURE_MESSAGES: Record<CommandFailure, string> = {
   max_size: 'The factory is as large as it can get',
   max_level: 'Already fully upgraded',
   not_upgradable: 'That can’t be upgraded',
+  empty: 'Nothing to place',
 };
 
 /**
@@ -74,6 +86,10 @@ export class PlacementController {
   private buildHover: BuildHover | null = null;
   /** The recipe last chosen for each machine type, so the next one built makes the same thing. */
   private readonly lastRecipe = new Map<string, string>();
+  /** Where the current copy drag started. */
+  private copyStart: { x: number; y: number } | null = null;
+  /** The most recently copied layout, for Ctrl+V and for saving as a blueprint. */
+  private clipboardBlueprint: Blueprint | null = null;
 
   constructor(
     private readonly sim: Simulation,
@@ -105,9 +121,29 @@ export class PlacementController {
 
   // ------------------------------------------------------------- tools
 
+  /** The layout last copied, if any. */
+  get clipboard(): Blueprint | null {
+    return this.clipboardBlueprint;
+  }
+
+  /** Starts (or leaves) the copy tool: drag a rectangle over what you want. */
+  toggleCopy(): void {
+    this.setTool(this.tool.mode === 'copy' ? { mode: 'select' } : { mode: 'copy' });
+  }
+
+  /** Picks up a layout to stamp down: the clipboard, or a saved blueprint. */
+  startPaste(blueprint: Blueprint | null = this.clipboardBlueprint): void {
+    if (!blueprint || isBlueprintEmpty(blueprint)) {
+      this.events.emit('message', 'Nothing copied yet — use Copy and drag over part of the factory');
+      return;
+    }
+    this.setTool({ mode: 'paste', blueprint });
+  }
+
   setTool(tool: Tool): void {
     this.tool = tool;
     this.dragCell = null;
+    this.copyStart = null;
     if (tool.mode !== 'select') this.select(null);
     this.events.emit('toolChanged', tool);
     this.refreshHover();
@@ -157,6 +193,12 @@ export class PlacementController {
   }
 
   rotate(): void {
+    if (this.tool.mode === 'paste') {
+      this.tool = { mode: 'paste', blueprint: rotateBlueprint(this.tool.blueprint) };
+      this.audio.play('rotate');
+      this.refreshHover();
+      return;
+    }
     if (this.tool.mode === 'build') {
       this.tool = { ...this.tool, rotation: rotateDir(this.tool.rotation, 1) };
       this.audio.play('rotate');
@@ -206,6 +248,10 @@ export class PlacementController {
       const target = this.targetAt(ndcX, ndcY);
       this.dragCell = this.cellAt(ndcX, ndcY);
       if (target) this.remove(target);
+    } else if (this.tool.mode === 'copy') {
+      this.copyStart = this.cellAt(ndcX, ndcY);
+    } else if (this.tool.mode === 'paste') {
+      this.pasteBlueprint(ndcX, ndcY);
     }
     this.refreshHover();
   }
@@ -245,6 +291,46 @@ export class PlacementController {
 
   primaryUp(): void {
     this.dragCell = null;
+    if (this.tool.mode !== 'copy' || !this.copyStart || !this.lastNdc) return;
+    const start = this.copyStart;
+    const end = this.cellAt(this.lastNdc.x, this.lastNdc.y) ?? start;
+    this.copyStart = null;
+    const blueprint = captureBlueprint(this.sim.state.factory, start.x, start.y, end.x, end.y);
+    if (isBlueprintEmpty(blueprint)) {
+      this.events.emit('message', 'Nothing to copy there — drag right across the machines you want');
+      this.refreshHover();
+      return;
+    }
+    this.clipboardBlueprint = blueprint;
+    this.audio.play('click');
+    // Go straight to placing it; that is nearly always what comes next.
+    this.setTool({ mode: 'paste', blueprint });
+  }
+
+  /** Top-left cell for a blueprint centred on the cursor. */
+  private blueprintAnchor(ndcX: number, ndcY: number, blueprint: Blueprint): { x: number; y: number } | null {
+    if (!this.camera.groundPoint(ndcX, ndcY, this.ground)) return null;
+    return {
+      x: Math.round(worldToGridX(this.ground.x) - blueprint.width / 2),
+      y: Math.round(worldToGridY(this.ground.z) - blueprint.height / 2),
+    };
+  }
+
+  private pasteBlueprint(ndcX: number, ndcY: number): void {
+    if (this.tool.mode !== 'paste') return;
+    const { blueprint } = this.tool;
+    const anchor = this.blueprintAnchor(ndcX, ndcY, blueprint);
+    if (!anchor) return;
+    const result = this.sim.placeBlueprint(blueprint, anchor.x, anchor.y);
+    if (!result.ok) return this.fail(result.reason);
+    this.audio.play('place');
+    this.effects.dust(
+      cellCenterX(anchor.x) + (blueprint.width - 1) / 2,
+      0,
+      cellCenterZ(anchor.y) + (blueprint.height - 1) / 2,
+      Math.max(blueprint.width, blueprint.height) / 2,
+      18,
+    );
   }
 
   /** A click (press and release without dragging) with the select tool. */
@@ -440,6 +526,36 @@ export class PlacementController {
         cost,
         affordable: economy.canAfford(cost),
       };
+      return;
+    }
+
+    if (tool.mode === 'paste') {
+      const anchor = this.blueprintAnchor(ndc.x, ndc.y, tool.blueprint);
+      if (!anchor) return this.preview.hide();
+      const valid = this.sim.canPlaceBlueprint(tool.blueprint, anchor.x, anchor.y).ok;
+      this.preview.showBlueprint(tool.blueprint, anchor.x, anchor.y, valid);
+      const cost = blueprintCost(tool.blueprint);
+      this.buildHover = {
+        x: cellCenterX(anchor.x) + (tool.blueprint.width - 1) / 2,
+        z: cellCenterZ(anchor.y) + (tool.blueprint.height - 1) / 2,
+        cost,
+        affordable: economy.canAfford(cost),
+      };
+      return;
+    }
+
+    if (tool.mode === 'copy') {
+      const cell = this.cellAt(ndc.x, ndc.y);
+      if (!cell) return this.preview.hide();
+      // While dragging, show the rectangle so far; before that, just the cell under the cursor.
+      const start = this.copyStart ?? cell;
+      this.preview.showHighlight(
+        Math.min(start.x, cell.x),
+        Math.min(start.y, cell.y),
+        Math.abs(cell.x - start.x) + 1,
+        Math.abs(cell.y - start.y) + 1,
+        'area',
+      );
       return;
     }
 

@@ -385,6 +385,102 @@ kbd {
   white-space: nowrap;
 }
 
+/* ------------------------------------------------------------- blueprints */
+
+.blueprints-panel {
+  position: absolute;
+  top: 66px;
+  left: 14px;
+  width: 320px;
+  max-height: calc(100vh - 190px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.blueprints-panel .panel-description {
+  margin: 0;
+}
+
+.blueprints-panel .button:disabled {
+  background: var(--panel-raised);
+  border-color: var(--border);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.blueprint-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.blueprint {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel-raised);
+}
+
+.blueprint-name {
+  width: 100%;
+  padding: 3px 6px;
+  margin-left: -6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.blueprint-name:hover,
+.blueprint-name:focus {
+  border-color: var(--border);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.blueprint-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.blueprint-summary {
+  flex: 1;
+  color: var(--muted);
+}
+
+.blueprint-cost {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.blueprint-cost.unaffordable {
+  color: var(--bad);
+}
+
+.blueprint-footer .button {
+  padding: 4px 11px;
+  font-size: 12.5px;
+}
+
 /* ----------------------------------------------------------- achievements */
 
 .achievements-modal {

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { AudioManager, SoundId } from '../audio/AudioManager';
+import { BlueprintLibrary } from '../core/blueprints/BlueprintLibrary';
 import { describeContract } from '../core/contracts/Contracts';
 import { formatMoney } from '../core/economy/Currency';
 import { AUTOSAVE_INTERVAL, TICK_RATE } from '../core/game/Constants';
@@ -27,6 +28,7 @@ import type { Renderer } from '../rendering/Renderer';
 import type { SceneManager } from '../rendering/SceneManager';
 import { StatusBadgeRenderer } from '../rendering/StatusBadgeRenderer';
 import { AchievementsPanel } from '../ui/AchievementsPanel';
+import { BlueprintsPanel } from '../ui/BlueprintsPanel';
 import { BuildToolbar } from '../ui/BuildToolbar';
 import { ContractsPanel } from '../ui/ContractsPanel';
 import { DebugPanel } from '../ui/DebugPanel';
@@ -96,6 +98,7 @@ export class GameSession {
   private readonly contractsPanel: ContractsPanel;
   private readonly offlinePanel: OfflineReportPanel;
   private readonly achievementsPanel: AchievementsPanel;
+  private readonly blueprintsPanel: BlueprintsPanel;
   private readonly notifications: NotificationSystem;
   private readonly debugRenderer: DebugRenderer | null = null;
   private readonly debugPanel: DebugPanel | null = null;
@@ -152,6 +155,7 @@ export class GameSession {
       toggleResearch: () => this.researchPanel.toggle(),
       toggleContracts: () => this.toggleDropdown(this.contractsPanel),
       toggleAchievements: () => this.achievementsPanel.toggle(),
+      toggleBlueprints: () => this.toggleDropdown(this.blueprintsPanel),
     });
 
     const click = () => ctx.audio.play('click');
@@ -189,7 +193,18 @@ export class GameSession {
         click();
         this.achievementsPanel.toggle();
       },
+      toggleBlueprints: () => {
+        click();
+        this.toggleDropdown(this.blueprintsPanel);
+      },
     });
+    let storage: Storage | null = null;
+    try {
+      storage = window.localStorage;
+    } catch {
+      // Storage blocked: blueprints still work, they just will not outlive the page.
+    }
+    this.blueprintsPanel = new BlueprintsPanel(ctx.uiRoot, new BlueprintLibrary(storage), this.placement, click);
     this.achievementsPanel = new AchievementsPanel(ctx.uiRoot, this.sim, (open) => this.input.setEnabled(!open));
     this.contractsPanel = new ContractsPanel(ctx.uiRoot, (id) => {
       click();
@@ -322,7 +337,7 @@ export class GameSession {
 
   /** The top-left drop-downs share one spot, so opening one closes the others. */
   private toggleDropdown(panel: { toggle: () => void; hide: () => void }): void {
-    for (const other of [this.stats, this.expansionPanel, this.contractsPanel]) {
+    for (const other of [this.stats, this.expansionPanel, this.contractsPanel, this.blueprintsPanel]) {
       if (other !== panel) other.hide();
     }
     panel.toggle();
@@ -489,6 +504,7 @@ export class GameSession {
     this.researchPanel.update();
     this.contractsPanel.update(state, this.sim.metrics);
     this.achievementsPanel.update();
+    this.blueprintsPanel.update(state);
     this.expansionPanel.update(state, this.sim.nextExpansion());
     this.hud.setResearchAvailable(this.researchPanel.hasAffordable());
     if (this.debugPanel?.visible) {

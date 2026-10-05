@@ -64,6 +64,14 @@ export const ICONS: Record<string, string> = {
       '<path d="M16 22l5-8" stroke="currentColor" stroke-width="2.6"/>' +
       '<circle cx="16" cy="22" r="2.2" fill="currentColor"/>',
   ),
+  copy: svg(
+    '<rect x="11" y="11" width="15" height="15" rx="2.500" stroke="#60a5fa" stroke-width="2.400"/>' +
+      '<path d="M8 21H7a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v1" stroke="#60a5fa" stroke-width="2.400"/>',
+  ),
+  blueprints: svg(
+    '<rect x="5" y="6" width="22" height="20" rx="2.500" stroke="currentColor" stroke-width="2.400"/>' +
+      '<path d="M5 13h22M12 13v13M12 19.500h15" stroke="currentColor" stroke-width="2"/>',
+  ),
   achievements: svg(
     '<path d="M10 5h12v7a6 6 0 01-12 0z" stroke="currentColor" stroke-width="2.4"/>' +
       '<path d="M10 7H5.500v2a4 4 0 004.500 4M22 7h4.500v2a4 4 0 01-4.500 4M16 18v5M11 27h10M13 23h6" stroke="currentColor" stroke-width="2.4"/>',

@@ -12,6 +12,7 @@ export interface KeyboardActions {
   toggleResearch: () => void;
   toggleContracts: () => void;
   toggleAchievements: () => void;
+  toggleBlueprints: () => void;
 }
 
 /**
@@ -20,6 +21,7 @@ export interface KeyboardActions {
  *   1-8            build tools  X       delete tool       Space   pause
  *   F              pick tool from what is under the cursor  B       bottleneck view
  *   T              research     C       contracts         G       achievements
+ *   Ctrl+C         copy an area Ctrl+V  paste it          P       blueprints
  */
 export class KeyboardController {
   enabled = true;
@@ -36,9 +38,21 @@ export class KeyboardController {
   }
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
-    if (!this.enabled || event.ctrlKey || event.metaKey || event.altKey) return;
     const target = event.target;
     if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
+    if (!this.enabled || event.altKey) return;
+    if (event.ctrlKey || event.metaKey) {
+      // Copy and paste are the only shortcuts that use a modifier.
+      if (event.repeat) return;
+      if (event.code === 'KeyC') {
+        event.preventDefault();
+        this.placement.toggleCopy();
+      } else if (event.code === 'KeyV') {
+        event.preventDefault();
+        this.placement.startPaste();
+      }
+      return;
+    }
 
     this.held.add(event.code);
     if (event.repeat) return;
@@ -77,6 +91,9 @@ export class KeyboardController {
         break;
       case 'KeyG':
         this.actions.toggleAchievements();
+        break;
+      case 'KeyP':
+        this.actions.toggleBlueprints();
         break;
       case 'Escape':
         this.placement.cancel();

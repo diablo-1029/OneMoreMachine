@@ -25,6 +25,8 @@ const CONTROLS: [string, string][] = [
   ['T', 'Research'],
   ['C', 'Contracts'],
   ['G', 'Achievements'],
+  ['Ctrl C / V', 'Copy area · paste'],
+  ['P', 'Blueprints'],
   ['Del', 'Remove selected'],
   ['Space', 'Pause'],
   ['Home', 'Centre view'],

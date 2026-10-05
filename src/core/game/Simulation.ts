@@ -1,5 +1,6 @@
 import type { AchievementDefinition } from '../../data/achievements';
 import { checkAchievements } from '../achievements/Achievements';
+import { blueprintCells, blueprintCost, type Blueprint } from '../blueprints/Blueprint';
 import { fillContracts, type Contract } from '../contracts/Contracts';
 import { buildCost, machineRefund, refundValue, sellValue, upgradeCost } from '../economy/Pricing';
 import type { ConveyorState } from '../factory/ConveyorState';
@@ -67,7 +68,8 @@ export type CommandFailure =
   | 'already_researched'
   | 'max_size'
   | 'max_level'
-  | 'not_upgradable';
+  | 'not_upgradable'
+  | 'empty';
 export type CommandResult<T> = { ok: true; value: T } | { ok: false; reason: CommandFailure };
 
 const fail = (reason: CommandFailure): { ok: false; reason: CommandFailure } => ({ ok: false, reason });
@@ -285,6 +287,38 @@ export class Simulation {
     if (!check.valid) return fail(check.reason);
     if (!economy.canAfford(buildCost(type))) return fail('cannot_afford');
     return { ok: true, value: null };
+  }
+
+  // ---------------------------------------------------------- blueprints
+
+  /**
+   * Whether a whole blueprint fits with its top-left corner at (gridX, gridY). It is all or
+   * nothing: every cell must be free, every machine researched, and the total affordable.
+   */
+  canPlaceBlueprint(blueprint: Blueprint, gridX: number, gridY: number): CommandResult<null> {
+    const { factory, economy } = this.state;
+    if (blueprint.machines.length + blueprint.conveyors.length === 0) return fail('empty');
+    if (blueprint.machines.some((machine) => !this.isMachineUnlocked(machine.type))) return fail('not_researched');
+    const check = validatePlacement(factory.grid, factory.occupancy, blueprintCells(blueprint, gridX, gridY));
+    if (!check.valid) return fail(check.reason);
+    if (!economy.canAfford(blueprintCost(blueprint))) return fail('cannot_afford');
+    return { ok: true, value: null };
+  }
+
+  /** Builds everything in a blueprint, or nothing at all. Returns how many pieces were placed. */
+  placeBlueprint(blueprint: Blueprint, gridX: number, gridY: number): CommandResult<number> {
+    const check = this.canPlaceBlueprint(blueprint, gridX, gridY);
+    if (!check.ok) return check;
+    for (const machine of blueprint.machines) {
+      // A recipe that has since become unavailable falls back to the machine's default.
+      const recipeId =
+        machine.recipeId && this.canUseRecipe(machine.type, machine.recipeId) ? machine.recipeId : undefined;
+      this.placeMachine(machine.type, gridX + machine.x, gridY + machine.y, machine.rotation, recipeId);
+    }
+    for (const conveyor of blueprint.conveyors) {
+      this.placeConveyor(gridX + conveyor.x, gridY + conveyor.y, conveyor.direction);
+    }
+    return { ok: true, value: blueprint.machines.length + blueprint.conveyors.length };
   }
 
   // ------------------------------------------------------------ upgrades

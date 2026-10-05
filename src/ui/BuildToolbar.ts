@@ -19,6 +19,7 @@ interface Entry {
 export class BuildToolbar {
   private readonly entries: Entry[] = [];
   private readonly deleteButton: HTMLButtonElement;
+  private readonly copyButton: HTMLButtonElement;
 
   constructor(root: HTMLElement, placement: PlacementController, onClick: () => void) {
     const bar = el('div', { class: 'toolbar' });
@@ -66,7 +67,25 @@ export class BuildToolbar {
         el('span', { class: 'tool-cost', text: 'refund' }),
       ],
     );
-    bar.append(el('div', { class: 'toolbar-divider' }), this.deleteButton);
+    this.copyButton = el(
+      'button',
+      {
+        class: 'tool tool-copy',
+        title: 'Copy — drag over part of the factory, then click to place the copy. R rotates it. Ctrl+V pastes again.',
+        onClick: () => {
+          onClick();
+          placement.toggleCopy();
+        },
+        attrs: { type: 'button' },
+      },
+      [
+        el('span', { class: 'tool-key', text: '^C' }),
+        el('span', { class: 'tool-icon', html: ICONS.copy }),
+        el('span', { class: 'tool-name', text: 'Copy' }),
+        el('span', { class: 'tool-cost', text: 'area' }),
+      ],
+    );
+    bar.append(el('div', { class: 'toolbar-divider' }), this.copyButton, this.deleteButton);
     root.append(bar);
 
     placement.events.on('toolChanged', (tool) => this.setTool(tool));
@@ -77,6 +96,7 @@ export class BuildToolbar {
       entry.button.classList.toggle('active', tool.mode === 'build' && tool.type === entry.type);
     }
     this.deleteButton.classList.toggle('active', tool.mode === 'delete');
+    this.copyButton.classList.toggle('active', tool.mode === 'copy' || tool.mode === 'paste');
   }
 
   update(state: GameState): void {

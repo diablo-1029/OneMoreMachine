@@ -183,6 +183,21 @@
   color: var(--bad);
 }
 
+/* Speed and settings stay together on one line; the long left group does the wrapping. */
+.topbar {
+  gap: 8px;
+}
+
+.topbar-group:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.topbar-group:last-child {
+  flex: none;
+  flex-wrap: nowrap;
+}
+
 /* ------------------------------------------------------------ tutorial hint */
 
 .hint {
@@ -319,6 +334,15 @@
   color: var(--muted);
 }
 
+.tool-copy .tool-cost {
+  color: var(--muted);
+}
+
+.tool-copy.active {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.16);
+}
+
 .tool-delete.active {
   border-color: var(--bad);
   background: rgba(248, 113, 113, 0.16);
@@ -364,6 +388,13 @@
   }
 }
 
+/* Below this width the top bar takes two rows, so the hint sits under both. */
+@media (max-width: 980px) {
+  .hint {
+    top: 122px;
+  }
+}
+
 @media (max-width: 760px) {
   .tool {
     width: 58px;
@@ -373,7 +404,7 @@
     font-size: 11px;
   }
   .hint {
-    top: 66px;
+    top: 122px;
     border-radius: 16px;
   }
 }

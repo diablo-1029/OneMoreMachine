@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { getMachineDef, rotatedSize, worldPorts } from '../core/factory/MachineRegistry';
+import type { Blueprint } from '../core/blueprints/Blueprint';
 import type { Direction } from '../core/grid/GridPosition';
 import { createMachineVisual } from '../machines/MachineVisualFactory';
 import { straightBodyGeometry } from './ConveyorRenderer';
@@ -9,6 +10,7 @@ const VALID = 0x4ade80;
 const INVALID = 0xf87171;
 const INPUT = 0x59c36a;
 const OUTPUT = 0xff9d3c;
+const AREA = 0x60a5fa;
 
 /** Flat arrow in the XZ plane pointing along +X. */
 function arrowGeometry(): THREE.BufferGeometry {
@@ -59,6 +61,9 @@ export class PlacementRenderer {
     opacity: 0.4,
   });
   private activeGhost: THREE.Object3D | null = null;
+  /** Ghost of the blueprint being pasted, rebuilt only when the blueprint itself changes. */
+  private blueprintGhost: { source: Blueprint; group: THREE.Group } | null = null;
+  private readonly conveyorGhostGeometry = straightBodyGeometry();
 
   constructor(scene: THREE.Scene) {
     this.footprint = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), this.footprintMaterial);
@@ -172,10 +177,50 @@ export class PlacementRenderer {
     this.hideArrows(0);
   }
 
-  /** Tints a block of cells without a ghost; used for hover in select and delete modes. */
-  showHighlight(gridX: number, gridY: number, w: number, h: number, kind: 'hover' | 'delete'): void {
+  /** Tints a block of cells without a ghost: hover in select and delete modes, or the area being copied. */
+  showHighlight(gridX: number, gridY: number, w: number, h: number, kind: 'hover' | 'delete' | 'area'): void {
     this.activate(null);
-    this.setFootprint(gridX, gridY, w, h, kind === 'delete' ? INVALID : 0xffffff, kind === 'delete' ? 0.5 : 0.22);
+    const color = kind === 'delete' ? INVALID : kind === 'area' ? AREA : 0xffffff;
+    this.setFootprint(gridX, gridY, w, h, color, kind === 'hover' ? 0.22 : kind === 'area' ? 0.4 : 0.5);
+    this.hideArrows(0);
+  }
+
+  /** Shows a whole blueprint as ghosts, with its top-left cell at (gridX, gridY). */
+  showBlueprint(blueprint: Blueprint, gridX: number, gridY: number, valid: boolean): void {
+    if (this.blueprintGhost?.source !== blueprint) {
+      if (this.blueprintGhost) this.group.remove(this.blueprintGhost.group);
+      const group = new THREE.Group();
+      for (const machine of blueprint.machines) {
+        const { w, h } = rotatedSize(getMachineDef(machine.type), machine.rotation);
+        const ghost = createMachineVisual(machine.type).root;
+        ghost.traverse((object) => {
+          if (object instanceof THREE.Mesh) {
+            object.material = this.ghostMaterial;
+            object.castShadow = false;
+            object.receiveShadow = false;
+          }
+        });
+        // Children are placed relative to the centre of the blueprint's top-left cell.
+        ghost.position.set(machine.x + (w - 1) / 2, 0, machine.y + (h - 1) / 2);
+        ghost.rotation.y = dirAngle(machine.rotation);
+        group.add(ghost);
+      }
+      for (const conveyor of blueprint.conveyors) {
+        const ghost = new THREE.Mesh(this.conveyorGhostGeometry, this.ghostMaterial);
+        ghost.position.set(conveyor.x, 0, conveyor.y);
+        ghost.rotation.y = dirAngle(conveyor.direction);
+        group.add(ghost);
+      }
+      group.visible = false;
+      this.group.add(group);
+      this.blueprintGhost = { source: blueprint, group };
+    }
+    const { group } = this.blueprintGhost;
+    group.position.set(cellCenterX(gridX), 0, cellCenterZ(gridY));
+    this.activate(group);
+    const color = valid ? VALID : INVALID;
+    this.ghostMaterial.color.setHex(color);
+    this.setFootprint(gridX, gridY, blueprint.width, blueprint.height, color, 0.2);
     this.hideArrows(0);
   }
 

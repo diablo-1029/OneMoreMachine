@@ -13,6 +13,7 @@ export interface HudActions {
   toggleExpansion: () => void;
   toggleContracts: () => void;
   toggleAchievements: () => void;
+  toggleBlueprints: () => void;
 }
 
 /** Top bar: money, income rate, pause / speed and settings. */
@@ -86,6 +87,14 @@ export class HUD {
       attrs: { type: 'button', 'aria-label': 'Achievements' },
     });
 
+    const blueprintsButton = el('button', {
+      class: 'pill icon-button',
+      title: 'Blueprints (P) — saved layouts you can place again',
+      html: ICONS.blueprints,
+      onClick: actions.toggleBlueprints,
+      attrs: { type: 'button', 'aria-label': 'Blueprints' },
+    });
+
     root.append(
       el('div', { class: 'topbar' }, [
         el('div', { class: 'topbar-group' }, [
@@ -105,6 +114,7 @@ export class HUD {
           contractsButton,
           this.researchButton,
           expandButton,
+          blueprintsButton,
           achievementsButton,
         ]),
         el('div', { class: 'topbar-group' }, [
