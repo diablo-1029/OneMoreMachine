@@ -4,6 +4,8 @@ export interface UpgradeLevel {
   name: string;
   /** Crafting speed multiplier at this level. */
   speed: number;
+  /** Power draw multiplier at this level. Faster machines are hungrier than they are fast. */
+  power: number;
   /** Price of reaching this level from the one below, as a multiple of the machine's build cost. */
   costFactor: number;
   /** Research node that must be completed first, if any. */
@@ -16,9 +18,9 @@ export interface UpgradeLevel {
  * for when there is no room left for it.
  */
 export const UPGRADE_LEVELS: UpgradeLevel[] = [
-  { level: 1, name: 'Mk I', speed: 1, costFactor: 0, requires: null },
-  { level: 2, name: 'Mk II', speed: 1.5, costFactor: 2, requires: 'machine_tuning' },
-  { level: 3, name: 'Mk III', speed: 2, costFactor: 4, requires: 'precision_engineering' },
+  { level: 1, name: 'Mk I', speed: 1, power: 1, costFactor: 0, requires: null },
+  { level: 2, name: 'Mk II', speed: 1.5, power: 2, costFactor: 2, requires: 'machine_tuning' },
+  { level: 3, name: 'Mk III', speed: 2, power: 3, costFactor: 4, requires: 'precision_engineering' },
 ];
 
 export const MAX_MACHINE_LEVEL = UPGRADE_LEVELS.length;

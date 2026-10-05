@@ -52,6 +52,13 @@ export const ICONS: Record<string, string> = {
       '<rect x="10" y="17" width="12" height="9" rx="1" fill="#7a5236"/>' +
       '<path d="M10 21.500h12M16 17v9" stroke="#553823" stroke-width="1.4"/>',
   ),
+  wind_turbine: svg(
+    '<path d="M16 15v13" stroke="#eef1f5" stroke-width="2.6"/>' +
+      '<path d="M11 28h10" stroke="#566074" stroke-width="2.6"/>' +
+      '<path d="M16 14V3.500l3 4.500zM16 14l-9.300 5 5.600.300zM16 14l9.300 5-2-5.300z" fill="#eef1f5"/>' +
+      '<circle cx="16" cy="14" r="2.400" fill="#ffb547"/>',
+  ),
+  power: svg('<path d="M18 3L7 18h7l-2 11 13-16h-8z" fill="currentColor"/>'),
   bottleneck: svg(
     '<path d="M6 22a10 10 0 0120 0" stroke="currentColor" stroke-width="2.6"/>' +
       '<path d="M16 22l5-8" stroke="currentColor" stroke-width="2.6"/>' +

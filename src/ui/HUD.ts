@@ -20,6 +20,8 @@ export class HUD {
   private readonly income: HTMLElement;
   private readonly speedButtons = new Map<GameSpeed, HTMLButtonElement>();
   private readonly bottleneckButton: HTMLButtonElement;
+  private readonly power: HTMLElement;
+  private readonly powerValue: HTMLElement;
   private readonly researchButton: HTMLButtonElement;
   private shownMoney = -1;
 
@@ -56,6 +58,9 @@ export class HUD {
       attrs: { type: 'button', 'aria-label': 'Research' },
     });
 
+    this.powerValue = el('span', { text: '0 / 0' });
+    this.power = el('div', { class: 'pill power' }, [el('span', { class: 'power-icon', html: ICONS.power }), this.powerValue]);
+
     const expandButton = el('button', {
       class: 'pill icon-button',
       title: 'Factory floor — buy more space',
@@ -86,6 +91,7 @@ export class HUD {
             },
             [this.income],
           ),
+          this.power,
           this.bottleneckButton,
           contractsButton,
           this.researchButton,
@@ -112,6 +118,16 @@ export class HUD {
   /** Shows a dot on the Research button when something can be bought. */
   setResearchAvailable(available: boolean): void {
     this.researchButton.classList.toggle('has-dot', available);
+  }
+
+  /** Power used out of power available; turns red when the factory is short. */
+  setPower(demand: number, supply: number): void {
+    setText(this.powerValue, `${Math.round(demand)} / ${Math.round(supply)}`);
+    const short = demand > supply;
+    this.power.classList.toggle('short', short);
+    this.power.title = short
+      ? `Power: machines want ${Math.round(demand)} but only ${Math.round(supply)} is available, so they all run at ${Math.round((supply / demand) * 100)}% speed.`
+      : `Power: ${Math.round(demand)} in use of ${Math.round(supply)} available.`;
   }
 
   setBottleneckView(active: boolean): void {

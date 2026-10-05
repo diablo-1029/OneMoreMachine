@@ -26,7 +26,7 @@ export class StatsPanel {
 
   constructor(
     root: HTMLElement,
-    private readonly onFocusMachine: (machineId: string) => void,
+    private readonly onFocusMachine: (machineId: string | null) => void,
   ) {
     const table = el('div', { class: 'stats-grid' }, [
       el('span', { class: 'muted', text: 'per minute' }),

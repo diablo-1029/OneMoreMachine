@@ -1,5 +1,6 @@
 import { BALANCE } from '../../data/balance';
 import { createContractState, type ContractState } from '../contracts/Contracts';
+import type { PowerState } from '../power/Power';
 import { Economy } from '../economy/Economy';
 import { FactoryState } from '../factory/FactoryState';
 import { DEFAULT_GRID_SIZE } from './Constants';
@@ -20,6 +21,7 @@ export interface GameState {
   /** Ids of completed research nodes; what can be built and made follows from these. */
   research: string[];
   contracts: ContractState;
+  power: PowerState;
 }
 
 export function createNewGame(): GameState {
@@ -31,5 +33,6 @@ export function createNewGame(): GameState {
     tutorialStep: 0,
     research: [],
     contracts: createContractState(),
+    power: { baseSupply: BALANCE.power.baseSupply },
   };
 }

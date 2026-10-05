@@ -320,13 +320,14 @@ export class GameSession {
   }
 
   /** Selects a machine and brings it to the middle of the screen. */
-  private focusMachine(machineId: string): void {
-    const machine = this.sim.state.factory.machines.get(machineId);
+  private focusMachine(machineId: string | null): void {
+    // Factory-wide findings (a power shortage) have no single machine to jump to.
+    const machine = machineId ? this.sim.state.factory.machines.get(machineId) : undefined;
     if (!machine) return;
     machineCenter(machine, this.center);
     this.ctx.camera.focus(this.center.x, this.center.z);
     this.placement.setTool({ mode: 'select' });
-    this.placement.select({ kind: 'machine', id: machineId });
+    this.placement.select({ kind: 'machine', id: machine.id });
   }
 
   /** Keeps the price tag beside the build ghost, red when the build is unaffordable. */
@@ -394,7 +395,7 @@ export class GameSession {
     const animDt = realDt * this.ticks.speed;
     this.animTime += animDt;
     this.conveyors.update(factory, animDt);
-    this.machines.update(factory, animDt, realDt, this.animTime);
+    this.machines.update(factory, animDt, realDt, this.animTime, this.sim.power.ratio);
     this.items.update(this.ticks.alpha, this.animTime, animDt);
     this.effects.update(realDt);
     this.selection.update(this.realTime);
@@ -427,6 +428,7 @@ export class GameSession {
   private updateUi(): void {
     const { state } = this.sim;
     this.hud.update(state);
+    this.hud.setPower(this.sim.power.demand, this.sim.power.supply);
     this.toolbar.update(state);
     this.machinePanel.update();
     this.stats.update(state, this.sim.metrics);

@@ -44,6 +44,14 @@ export const RESEARCH_NODES: ResearchNode[] = [
     unlocks: { machines: ['storage'], recipes: [] },
   },
   {
+    id: 'wind_power',
+    name: 'Wind Power',
+    description: 'Build turbines to power a factory that has outgrown its free supply.',
+    cost: 500,
+    requires: [],
+    unlocks: { machines: ['wind_turbine'], recipes: [] },
+  },
+  {
     id: 'machine_tuning',
     name: 'Machine Tuning',
     description: 'Upgrade Miners, Furnaces and Assemblers to Mk II: half as fast again in the same space.',

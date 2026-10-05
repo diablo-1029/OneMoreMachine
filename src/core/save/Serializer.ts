@@ -47,6 +47,7 @@ export function serializeGame(state: GameState, settings: GameSettings): SaveDat
     simTime: state.simTime,
     tutorialStep: state.tutorialStep,
     research: [...state.research],
+    power: { baseSupply: state.power.baseSupply },
     contracts: {
       active: state.contracts.active.map((contract) => ({ ...contract })),
       completed: state.contracts.completed,
@@ -284,6 +285,9 @@ export function restoreGame(raw: unknown): GameState {
       ? [...new Set(save.research.filter((id): id is string => typeof id === 'string' && isResearchId(id)))]
       : [],
     contracts: parseContracts(save.contracts),
+    power: {
+      baseSupply: Math.max(0, finite(isRecord(save.power) ? save.power.baseSupply : undefined, 'Invalid power supply')),
+    },
   };
 }
 

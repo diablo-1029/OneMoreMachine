@@ -13,6 +13,7 @@ import { footprintCells, getMachineDef, worldPorts } from '../factory/MachineReg
 import { createMachineState, type MachineState } from '../factory/MachineState';
 import { machineAccepts, machineStatus, updateCrafter } from '../factory/MachineSystem';
 import { routerAccepts, routerEntryLimit, routerInsert, updateRouter, type RouterHooks } from '../factory/RouterSystem';
+import { computePower, type PowerStatus } from '../power/Power';
 import { FactoryMetrics } from '../stats/FactoryMetrics';
 import { rotateDir, type Direction } from '../grid/GridPosition';
 import { validatePlacement, type PlacementFailure } from '../grid/PlacementValidator';
@@ -77,10 +78,13 @@ export class Simulation {
   /** Live throughput and utilisation measurements; derived, never saved. */
   readonly metrics = new FactoryMetrics();
   private readonly network = new ConveyorNetwork();
+  /** Supply, demand and the resulting machine speed, as of the last tick. Derived, never saved. */
+  power: PowerStatus = { supply: 0, demand: 0, ratio: 1 };
   private tutorialTimer = 0;
 
   constructor(readonly state: GameState) {
     fillContracts(state.contracts, state.research);
+    this.power = computePower(state.factory, state.power);
   }
 
   // ---------------------------------------------------------------- tick
@@ -94,6 +98,10 @@ export class Simulation {
 
     updateConveyors(factory, this.network, dt, this.hooks);
 
+    // Short of power, every crafting machine runs slower by the same proportion.
+    this.power = computePower(factory, this.state.power);
+    const craftDt = dt * this.power.ratio;
+
     for (const machine of factory.machines.values()) {
       const behavior = getMachineDef(machine.type).behavior;
       if (behavior === 'router') {
@@ -101,7 +109,7 @@ export class Simulation {
       } else if (behavior === 'storage') {
         this.pushOutputs(machine);
       } else if (behavior === 'crafter') {
-        const finished = updateCrafter(machine, dt);
+        const finished = updateCrafter(machine, craftDt);
         if (finished) {
           for (const output of finished.outputs) {
             this.state.stats.produced[output.resourceId] =

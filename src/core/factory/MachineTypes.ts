@@ -23,12 +23,15 @@ export interface MachinePort {
  * router:  a belt-speed junction; items cross it and leave through an output chosen in turn
  *          (one input + several outputs = splitter, several inputs + one output = merger).
  * storage: buffers any resource and releases the oldest first.
+ * generator: adds power to the factory's shared pool; handles no items.
  */
-export type MachineBehavior = 'crafter' | 'seller' | 'router' | 'storage';
+export type MachineBehavior = 'crafter' | 'seller' | 'router' | 'storage' | 'generator';
 
 export interface MachineDefinition {
   type: MachineType;
   name: string;
+  /** Shorter label for the build toolbar, where the full name would not fit. */
+  toolbarName?: string;
   description: string;
   cost: number;
   width: number;
@@ -39,4 +42,8 @@ export interface MachineDefinition {
   outputCapacity: number;
   /** Items a storage machine can hold. */
   storageCapacity?: number;
+  /** Power drawn while switched on (crafting machines). */
+  powerUse?: number;
+  /** Power supplied while switched on (generators). */
+  powerOutput?: number;
 }

@@ -61,6 +61,34 @@
   font-size: 15px;
 }
 
+.pill.power {
+  gap: 4px;
+  padding: 0 14px 0 10px;
+  font-size: 15px;
+  color: #ffd76a;
+}
+
+.power-icon {
+  display: grid;
+}
+
+.power-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.pill.power.short {
+  color: var(--bad);
+  border-color: rgba(248, 113, 113, 0.6);
+  animation: power-short 1.4s ease-in-out infinite;
+}
+
+@keyframes power-short {
+  50% {
+    background: rgba(90, 30, 34, 0.95);
+  }
+}
+
 .pill.income:hover,
 .pill.icon-button:hover {
   background: rgba(40, 47, 60, 0.96);

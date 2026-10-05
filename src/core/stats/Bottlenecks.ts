@@ -7,12 +7,15 @@ import { machineAccepts, machineSpeed } from '../factory/MachineSystem';
 import { oppositeDir } from '../grid/GridPosition';
 import type { GameState } from '../game/GameState';
 import type { Recipe } from '../recipes/Recipe';
+import { computePower } from '../power/Power';
 import { getRecipe, recipesFor } from '../recipes/RecipeRegistry';
+import { unlockedMachines } from '../research/Research';
 import type { FactoryMetrics } from './FactoryMetrics';
 
 export interface BottleneckFinding {
-  machineId: string;
-  kind: 'starved' | 'blocked';
+  /** The machine concerned, or null for a factory-wide problem such as a power shortage. */
+  machineId: string | null;
+  kind: 'starved' | 'blocked' | 'power';
   /** Fraction of recent time lost to this cause. */
   share: number;
   /** What is wrong, e.g. "Assembler waits for Iron Plate 58% of the time." */
@@ -193,6 +196,24 @@ export function analyzeBottlenecks(state: GameState, metrics: FactoryMetrics): B
         severity: shares.blocked * weight,
       });
     }
+  }
+
+  const power = computePower(state.factory, state.power);
+  if (power.ratio < 0.995) {
+    const shortfall = power.demand - power.supply;
+    const turbine = getMachineDef('wind_turbine');
+    const turbines = Math.ceil(shortfall / (turbine.powerOutput ?? 1));
+    findings.push({
+      machineId: null,
+      kind: 'power',
+      share: 1 - power.ratio,
+      problem: `The factory needs ${Math.round(power.demand)} power but has ${Math.round(power.supply)} — every machine runs at ${percent(power.ratio)} speed.`,
+      fix: unlockedMachines(state.research).includes(turbine.type)
+        ? `${turbines === 1 ? 'One more Wind Turbine' : `${turbines} more Wind Turbines`} would cover it.`
+        : 'Research Wind Power to build turbines, or switch off machines you can spare.',
+      // A shortage slows everything at once, so it outranks any single machine's trouble.
+      severity: 1 + (1 - power.ratio),
+    });
   }
 
   return findings.sort((a, b) => b.severity - a.severity);

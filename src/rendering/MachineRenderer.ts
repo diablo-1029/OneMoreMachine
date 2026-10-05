@@ -58,11 +58,16 @@ export class MachineRenderer {
     this.visuals.get(machineId)?.notify(this.effects);
   }
 
-  /** `animDt` follows game speed (0 when paused); `realDt` drives UI-style motion like the placement pop. */
-  update(factory: FactoryState, animDt: number, realDt: number, time: number): void {
+  /**
+   * `animDt` follows game speed (0 when paused); `realDt` drives UI-style motion like the placement pop.
+   * `powerRatio` slows the animation of crafting machines during a power shortage, as it slows their work.
+   */
+  update(factory: FactoryState, animDt: number, realDt: number, time: number, powerRatio: number): void {
     for (const [id, visual] of this.visuals) {
       const machine = factory.machines.get(id);
-      if (machine) visual.update(machine, animDt, realDt, time, this.effects);
+      if (!machine) continue;
+      const crafting = getMachineDef(machine.type).behavior === 'crafter';
+      visual.update(machine, crafting ? animDt * powerRatio : animDt, realDt, time, this.effects);
     }
   }
 

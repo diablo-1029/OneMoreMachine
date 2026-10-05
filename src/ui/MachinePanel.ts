@@ -3,6 +3,7 @@ import { getMachineDef } from '../core/factory/MachineRegistry';
 import type { Inventory, MachineState } from '../core/factory/MachineState';
 import { machineSpeed, machineStatus, nominalRatePerMinute, STATUS_LABELS } from '../core/factory/MachineSystem';
 import { formatMoney } from '../core/economy/Currency';
+import { machinePowerOutput, machinePowerUse } from '../core/power/Power';
 import { getUpgradeLevel } from '../data/upgrades';
 import type { Simulation } from '../core/game/Simulation';
 import { DIR_NAMES } from '../core/grid/GridPosition';
@@ -19,7 +20,7 @@ function resourceChip(resourceId: string, amount: string): HTMLElement {
   return el('span', { class: 'chip' }, [dot, `${amount} ${resource.name}`]);
 }
 
-type RowKey = 'status' | 'level' | 'makes' | 'recipe' | 'input' | 'output' | 'progress' | 'rate' | 'efficiency';
+type RowKey = 'status' | 'level' | 'power' | 'makes' | 'recipe' | 'input' | 'output' | 'progress' | 'rate' | 'efficiency';
 
 /** Right-hand panel describing the selected machine or belt. */
 export class MachinePanel {
@@ -38,6 +39,7 @@ export class MachinePanel {
   private readonly efficiencyFill: HTMLElement;
   private readonly toggle: HTMLButtonElement;
   private readonly level: HTMLElement;
+  private readonly power: HTMLElement;
   private readonly upgradeButton: HTMLButtonElement;
   private readonly rows = new Map<RowKey, HTMLElement>();
   private selection: Selection = null;
@@ -72,6 +74,7 @@ export class MachinePanel {
     };
 
     this.level = el('div', { class: 'row-value' });
+    this.power = el('div', { class: 'row-value' });
     this.upgradeButton = el('button', {
       class: 'button primary upgrade-button hidden',
       attrs: { type: 'button' },
@@ -107,6 +110,7 @@ export class MachinePanel {
       el('div', { class: 'rows' }, [
         row('status', 'Status', this.status),
         row('level', 'Level', this.level),
+        row('power', 'Power', this.power),
         row('makes', 'Makes', this.makes),
         row('recipe', 'Recipe', this.recipe),
         row('input', this.inputLabel, this.input),
@@ -220,6 +224,10 @@ export class MachinePanel {
         this.fillChips(this.input, `transit:${machine.transit.length}`, [], `${machine.transit.length} item${machine.transit.length === 1 ? '' : 's'}`);
         setText(this.rate, 'Up to 120 items/min');
         break;
+      case 'generator':
+        this.showRows(['status', 'power']);
+        setText(this.power, machine.enabled ? `Supplies ${machinePowerOutput(machine)}` : 'Switched off');
+        break;
       case 'storage': {
         this.showRows(['status', 'input', 'progress']);
         setText(this.inputLabel, 'Holding');
@@ -238,8 +246,20 @@ export class MachinePanel {
     const def = getMachineDef(machine.type);
     // Machines with a choice of products get a picker; the rest just show their recipe.
     const choices = recipesFor(machine.type).filter((r) => this.sim.isRecipeAvailable(r.id));
-    const rows: RowKey[] = ['status', 'level', 'recipe', 'input', 'output', 'progress', 'rate', 'efficiency'];
-    if (choices.length > 1) rows.splice(2, 0, 'makes');
+    const rows: RowKey[] = ['status', 'level', 'power', 'recipe', 'input', 'output', 'progress', 'rate', 'efficiency'];
+    if (choices.length > 1) rows.splice(3, 0, 'makes');
+
+    const { ratio } = this.sim.power;
+    const draw = machinePowerUse(machine);
+    setText(
+      this.power,
+      !machine.enabled
+        ? 'Switched off, uses none'
+        : ratio < 0.995
+          ? `Uses ${draw} · short, running at ${Math.round(ratio * 100)}%`
+          : `Uses ${draw}`,
+    );
+    this.power.dataset.short = String(machine.enabled && ratio < 0.995);
 
     const speed = machineSpeed(machine);
     setText(this.level, `${getUpgradeLevel(machine.level).name} · ${speed === 1 ? 'standard speed' : `${speed}× speed`}`);

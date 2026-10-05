@@ -10,6 +10,14 @@ export const BALANCE = {
     splitter: 30,
     merger: 30,
     storage: 100,
+    wind_turbine: 200,
+  },
+  power: {
+    /** Free power every factory has before building a generator. */
+    baseSupply: 40,
+    turbineOutput: 15,
+    /** Draw of a standard (Mk I) machine. */
+    use: { miner: 2, furnace: 3, assembler: 4 },
   },
   /** Fraction of the build cost returned on removal. Full refunds keep experimenting stress-free. */
   refundRate: 1,

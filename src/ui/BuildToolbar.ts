@@ -40,7 +40,7 @@ export class BuildToolbar {
         [
           el('span', { class: 'tool-key', text: String(index + 1) }),
           el('span', { class: 'tool-icon', html: ICONS[type] ?? '' }),
-          el('span', { class: 'tool-name', text: info.name }),
+          el('span', { class: 'tool-name', text: type === 'conveyor' ? info.name : (getMachineDef(type).toolbarName ?? info.name) }),
           el('span', { class: 'tool-cost', text: formatMoney(cost) }),
         ],
       );

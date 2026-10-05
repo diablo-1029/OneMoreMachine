@@ -51,6 +51,7 @@ export interface SaveData {
   tutorialStep: number;
   research: string[];
   contracts: ContractState;
+  power: { baseSupply: number };
   settings: GameSettings;
 }
 

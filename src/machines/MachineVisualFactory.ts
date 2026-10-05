@@ -7,6 +7,7 @@ import { MinerVisual } from './MinerVisual';
 import { SellerVisual } from './SellerVisual';
 import { SplitterVisual } from './SplitterVisual';
 import { StorageVisual } from './StorageVisual';
+import { WindTurbineVisual } from './WindTurbineVisual';
 
 /** Machine type → visual. Adding a machine means one entry here plus its data definition. */
 const VISUALS: Record<string, () => MachineVisual> = {
@@ -17,6 +18,7 @@ const VISUALS: Record<string, () => MachineVisual> = {
   splitter: () => new SplitterVisual(),
   merger: () => new MergerVisual(),
   storage: () => new StorageVisual(),
+  wind_turbine: () => new WindTurbineVisual(),
 };
 
 export function createMachineVisual(type: MachineType): MachineVisual {

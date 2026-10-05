@@ -1,4 +1,7 @@
+import { BALANCE } from '../../data/balance';
+import { MACHINE_DEFINITIONS } from '../../data/machines';
 import { LEGACY_RESEARCH } from '../../data/research';
+import { getUpgradeLevel } from '../../data/upgrades';
 import { SAVE_VERSION } from '../game/Constants';
 import { SaveError } from './SaveSchema';
 
@@ -20,6 +23,21 @@ const MIGRATIONS: Record<number, (save: RawSave) => RawSave> = {
   // v3 added research. Everything it gates in older saves was free before, so grant it.
   2: (save) => {
     save.research = [...LEGACY_RESEARCH];
+    return save;
+  },
+  // v6 added power. A factory built before then keeps running at full speed: its free supply
+  // is raised to cover everything it already has, so power only matters once it grows.
+  5: (save) => {
+    const factory = save.factory as { machines?: unknown } | undefined;
+    let demand = 0;
+    if (factory && Array.isArray(factory.machines)) {
+      for (const machine of factory.machines as { type?: unknown; level?: unknown }[]) {
+        const def = MACHINE_DEFINITIONS.find((d) => d.type === machine?.type);
+        const level = typeof machine?.level === 'number' ? machine.level : 1;
+        demand += (def?.powerUse ?? 0) * getUpgradeLevel(level).power;
+      }
+    }
+    save.power = { baseSupply: Math.max(BALANCE.power.baseSupply, Math.ceil(demand)) };
     return save;
   },
   // v5 added machine upgrade levels.

@@ -237,6 +237,14 @@
   background: var(--panel-hover);
 }
 
+.finding-power {
+  border-left-color: #ffd76a;
+}
+
+.row-value[data-short='true'] {
+  color: var(--bad);
+}
+
 .finding-blocked {
   border-left-color: var(--bad);
 }

@@ -10,6 +10,7 @@ export const MACHINE_DEFINITIONS: MachineDefinition[] = [
     type: 'miner',
     name: 'Miner',
     description: 'Drills ore out of the ground.',
+    powerUse: BALANCE.power.use.miner,
     cost: BALANCE.costs.miner,
     width: 2,
     height: 2,
@@ -21,6 +22,7 @@ export const MACHINE_DEFINITIONS: MachineDefinition[] = [
     type: 'furnace',
     name: 'Furnace',
     description: 'Smelts ore into plates.',
+    powerUse: BALANCE.power.use.furnace,
     cost: BALANCE.costs.furnace,
     width: 2,
     height: 2,
@@ -35,6 +37,7 @@ export const MACHINE_DEFINITIONS: MachineDefinition[] = [
     type: 'assembler',
     name: 'Assembler',
     description: 'Builds parts from plates, wire and other parts.',
+    powerUse: BALANCE.power.use.assembler,
     cost: BALANCE.costs.assembler,
     width: 2,
     height: 2,
@@ -108,6 +111,19 @@ export const MACHINE_DEFINITIONS: MachineDefinition[] = [
     outputCapacity: 0,
     storageCapacity: 200,
   },
+  {
+    type: 'wind_turbine',
+    name: 'Wind Turbine',
+    toolbarName: 'Turbine',
+    description: 'Adds 15 power to the factory. Needs no fuel and no belts.',
+    cost: BALANCE.costs.wind_turbine,
+    width: 2,
+    height: 2,
+    behavior: 'generator',
+    ports: [],
+    outputCapacity: 0,
+    powerOutput: BALANCE.power.turbineOutput,
+  },
 ];
 
 export const CONVEYOR_INFO = {
@@ -126,4 +142,5 @@ export const BUILD_ORDER = [
   'splitter',
   'merger',
   'storage',
+  'wind_turbine',
 ] as const;
