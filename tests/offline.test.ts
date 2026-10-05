@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TICK_RATE } from '../src/core/game/Constants';
+import { allAchievementIds } from '../src/core/achievements/Achievements';
 import { createNewGame } from '../src/core/game/GameState';
 import { applyOfflineProgress, formatDuration, OFFLINE } from '../src/core/game/OfflineProgress';
 import { Simulation } from '../src/core/game/Simulation';
@@ -12,6 +13,7 @@ function gearLine(): Simulation {
   state.economy.money = 10_000;
   const sim = new Simulation(state);
   state.contracts.active = [];
+  state.achievements = allAchievementIds();
   sim.placeMachine('miner', 0, 0, 0);
   sim.placeConveyor(2, 0, 0);
   sim.placeMachine('furnace', 3, 0, 0);

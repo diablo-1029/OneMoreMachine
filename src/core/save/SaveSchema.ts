@@ -52,6 +52,7 @@ export interface SaveData {
   research: string[];
   contracts: ContractState;
   power: { baseSupply: number };
+  achievements: string[];
   settings: GameSettings;
 }
 

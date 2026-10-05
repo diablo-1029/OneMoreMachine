@@ -7,6 +7,7 @@ import {
   type Contract,
 } from '../src/core/contracts/Contracts';
 import { SAVE_VERSION, TICK_RATE } from '../src/core/game/Constants';
+import { allAchievementIds } from '../src/core/achievements/Achievements';
 import { createNewGame } from '../src/core/game/GameState';
 import { Simulation } from '../src/core/game/Simulation';
 import { allResearchIds } from '../src/core/research/Research';
@@ -25,6 +26,7 @@ function simWith(contract: Omit<Contract, 'id' | 'progress'>, money = 5000): Sim
   state.economy.money = money;
   const sim = new Simulation(state);
   state.contracts.active = [{ id: 9000, progress: 0, ...contract }];
+  state.achievements = allAchievementIds();
   return sim;
 }
 

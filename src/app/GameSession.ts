@@ -26,6 +26,7 @@ import { RecipeMarkerRenderer } from '../rendering/RecipeMarkerRenderer';
 import type { Renderer } from '../rendering/Renderer';
 import type { SceneManager } from '../rendering/SceneManager';
 import { StatusBadgeRenderer } from '../rendering/StatusBadgeRenderer';
+import { AchievementsPanel } from '../ui/AchievementsPanel';
 import { BuildToolbar } from '../ui/BuildToolbar';
 import { ContractsPanel } from '../ui/ContractsPanel';
 import { DebugPanel } from '../ui/DebugPanel';
@@ -94,6 +95,7 @@ export class GameSession {
   private readonly expansionPanel: ExpansionPanel;
   private readonly contractsPanel: ContractsPanel;
   private readonly offlinePanel: OfflineReportPanel;
+  private readonly achievementsPanel: AchievementsPanel;
   private readonly notifications: NotificationSystem;
   private readonly debugRenderer: DebugRenderer | null = null;
   private readonly debugPanel: DebugPanel | null = null;
@@ -149,6 +151,7 @@ export class GameSession {
       toggleBottleneckView: () => this.toggleBottleneckView(),
       toggleResearch: () => this.researchPanel.toggle(),
       toggleContracts: () => this.toggleDropdown(this.contractsPanel),
+      toggleAchievements: () => this.achievementsPanel.toggle(),
     });
 
     const click = () => ctx.audio.play('click');
@@ -182,7 +185,12 @@ export class GameSession {
         click();
         this.toggleDropdown(this.contractsPanel);
       },
+      toggleAchievements: () => {
+        click();
+        this.achievementsPanel.toggle();
+      },
     });
+    this.achievementsPanel = new AchievementsPanel(ctx.uiRoot, this.sim, (open) => this.input.setEnabled(!open));
     this.contractsPanel = new ContractsPanel(ctx.uiRoot, (id) => {
       click();
       this.sim.swapContract(id);
@@ -284,6 +292,18 @@ export class GameSession {
       audio.play('research');
       this.notifications.toast(`Factory floor expanded to ${width} × ${height}`);
       this.updateUi();
+    });
+    events.on('achievementsUnlocked', (unlocked) => {
+      audio.play('achievement');
+      const reward = unlocked.reduce((sum, a) => sum + a.reward, 0);
+      // An old save can earn a dozen at once; one line is enough for that.
+      this.notifications.toast(
+        unlocked.length === 1
+          ? `Achievement: ${unlocked[0].name} · +${formatMoney(reward)}`
+          : `${unlocked.length} achievements unlocked · +${formatMoney(reward)}`,
+      );
+      this.requestSave();
+      this.achievementsPanel.update();
     });
     events.on('contractCompleted', (contract) => {
       audio.play('contract');
@@ -468,6 +488,7 @@ export class GameSession {
     this.stats.update(state, this.sim.metrics);
     this.researchPanel.update();
     this.contractsPanel.update(state, this.sim.metrics);
+    this.achievementsPanel.update();
     this.expansionPanel.update(state, this.sim.nextExpansion());
     this.hud.setResearchAvailable(this.researchPanel.hasAffordable());
     if (this.debugPanel?.visible) {

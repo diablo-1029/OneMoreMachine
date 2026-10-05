@@ -22,6 +22,8 @@ export interface GameState {
   research: string[];
   contracts: ContractState;
   power: PowerState;
+  /** Ids of unlocked achievements, in the order they were earned. */
+  achievements: string[];
 }
 
 export function createNewGame(): GameState {
@@ -34,5 +36,6 @@ export function createNewGame(): GameState {
     research: [],
     contracts: createContractState(),
     power: { baseSupply: BALANCE.power.baseSupply },
+    achievements: [],
   };
 }

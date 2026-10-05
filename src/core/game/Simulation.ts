@@ -1,3 +1,5 @@
+import type { AchievementDefinition } from '../../data/achievements';
+import { checkAchievements } from '../achievements/Achievements';
 import { fillContracts, type Contract } from '../contracts/Contracts';
 import { buildCost, machineRefund, refundValue, sellValue, upgradeCost } from '../economy/Pricing';
 import type { ConveyorState } from '../factory/ConveyorState';
@@ -50,6 +52,8 @@ export interface SimulationEvents {
   tutorialAdvanced: number;
   researchCompleted: ResearchNode;
   contractCompleted: Contract;
+  /** One or more achievements were earned in the same check. */
+  achievementsUnlocked: AchievementDefinition[];
   /** The floor grew; every grid coordinate has shifted by (dx, dy). */
   factoryExpanded: { width: number; height: number; dx: number; dy: number };
 }
@@ -81,6 +85,7 @@ export class Simulation {
   /** Supply, demand and the resulting machine speed, as of the last tick. Derived, never saved. */
   power: PowerStatus = { supply: 0, demand: 0, ratio: 1 };
   private tutorialTimer = 0;
+  private achievementTimer = 0;
 
   constructor(readonly state: GameState) {
     fillContracts(state.contracts, state.research);
@@ -129,6 +134,13 @@ export class Simulation {
       this.tutorialTimer = 0;
       this.checkTutorial();
       this.checkRateContracts();
+    }
+
+    this.achievementTimer += dt;
+    if (this.achievementTimer >= 1) {
+      this.achievementTimer = 0;
+      const unlocked = checkAchievements(this);
+      if (unlocked.length > 0) this.events.emit('achievementsUnlocked', unlocked);
     }
   }
 

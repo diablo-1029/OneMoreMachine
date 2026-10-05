@@ -24,6 +24,7 @@ const CONTROLS: [string, string][] = [
   ['B', 'Bottleneck view'],
   ['T', 'Research'],
   ['C', 'Contracts'],
+  ['G', 'Achievements'],
   ['Del', 'Remove selected'],
   ['Space', 'Pause'],
   ['Home', 'Centre view'],

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TICK_RATE } from '../src/core/game/Constants';
+import { allAchievementIds } from '../src/core/achievements/Achievements';
 import { createNewGame } from '../src/core/game/GameState';
 import { Simulation } from '../src/core/game/Simulation';
 import { allResearchIds } from '../src/core/research/Research';
@@ -14,6 +15,7 @@ function newSim(money: number): Simulation {
   const sim = new Simulation(state);
   // These tests check exact money, so contract bonuses are kept out of the way.
   state.contracts.active = [];
+  state.achievements = allAchievementIds();
   return sim;
 }
 

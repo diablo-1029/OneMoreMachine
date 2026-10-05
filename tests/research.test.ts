@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SAVE_VERSION, TICK_RATE } from '../src/core/game/Constants';
+import { allAchievementIds } from '../src/core/achievements/Achievements';
 import { createNewGame } from '../src/core/game/GameState';
 import { Simulation } from '../src/core/game/Simulation';
 import { currentHint } from '../src/core/game/Tutorial';
@@ -13,6 +14,7 @@ const node = (id: string) => RESEARCH_NODES.find((n) => n.id === id)!;
 function freshSim(money = 200): Simulation {
   const state = createNewGame();
   state.economy.money = money;
+  state.achievements = allAchievementIds();
   return new Simulation(state);
 }
 

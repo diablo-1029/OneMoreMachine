@@ -1,5 +1,6 @@
 import { isResource } from '../../data/resources';
 import { MAX_MACHINE_LEVEL } from '../../data/upgrades';
+import { isAchievementId } from '../achievements/Achievements';
 import type { Contract, ContractState } from '../contracts/Contracts';
 import { Economy } from '../economy/Economy';
 import { FactoryState } from '../factory/FactoryState';
@@ -48,6 +49,7 @@ export function serializeGame(state: GameState, settings: GameSettings): SaveDat
     tutorialStep: state.tutorialStep,
     research: [...state.research],
     power: { baseSupply: state.power.baseSupply },
+    achievements: [...state.achievements],
     contracts: {
       active: state.contracts.active.map((contract) => ({ ...contract })),
       completed: state.contracts.completed,
@@ -285,6 +287,9 @@ export function restoreGame(raw: unknown): GameState {
       ? [...new Set(save.research.filter((id): id is string => typeof id === 'string' && isResearchId(id)))]
       : [],
     contracts: parseContracts(save.contracts),
+    achievements: Array.isArray(save.achievements)
+      ? [...new Set(save.achievements.filter((id): id is string => typeof id === 'string' && isAchievementId(id)))]
+      : [],
     power: {
       baseSupply: Math.max(0, finite(isRecord(save.power) ? save.power.baseSupply : undefined, 'Invalid power supply')),
     },

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FactoryState } from '../src/core/factory/FactoryState';
 import { TICK_RATE } from '../src/core/game/Constants';
+import { allAchievementIds } from '../src/core/achievements/Achievements';
 import { createNewGame } from '../src/core/game/GameState';
 import { Simulation } from '../src/core/game/Simulation';
 import { computePower } from '../src/core/power/Power';
@@ -17,6 +18,7 @@ function newSim(research: string[] = allResearchIds(), baseSupply = 40): Simulat
   state.power.baseSupply = baseSupply;
   const sim = new Simulation(state);
   state.contracts.active = [];
+  state.achievements = allAchievementIds();
   return sim;
 }
 

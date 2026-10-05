@@ -13,6 +13,8 @@
 
 .topbar-group {
   display: flex;
+  /* The left group has many buttons; on a narrow window it wraps rather than running under the right one. */
+  flex-wrap: wrap;
   gap: 8px;
   pointer-events: auto;
 }

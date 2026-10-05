@@ -12,6 +12,7 @@ export interface HudActions {
   openResearch: () => void;
   toggleExpansion: () => void;
   toggleContracts: () => void;
+  toggleAchievements: () => void;
 }
 
 /** Top bar: money, income rate, pause / speed and settings. */
@@ -77,6 +78,14 @@ export class HUD {
       attrs: { type: 'button', 'aria-label': 'Contracts' },
     });
 
+    const achievementsButton = el('button', {
+      class: 'pill icon-button',
+      title: 'Achievements (G)',
+      html: ICONS.achievements,
+      onClick: actions.toggleAchievements,
+      attrs: { type: 'button', 'aria-label': 'Achievements' },
+    });
+
     root.append(
       el('div', { class: 'topbar' }, [
         el('div', { class: 'topbar-group' }, [
@@ -96,6 +105,7 @@ export class HUD {
           contractsButton,
           this.researchButton,
           expandButton,
+          achievementsButton,
         ]),
         el('div', { class: 'topbar-group' }, [
           el('div', { class: 'pill speed' }, [

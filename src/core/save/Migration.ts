@@ -25,6 +25,11 @@ const MIGRATIONS: Record<number, (save: RawSave) => RawSave> = {
     save.research = [...LEGACY_RESEARCH];
     return save;
   },
+  // v7 added achievements. Any already earned are unlocked, and paid, on the first check.
+  6: (save) => {
+    save.achievements = [];
+    return save;
+  },
   // v6 added power. A factory built before then keeps running at full speed: its free supply
   // is raised to cover everything it already has, so power only matters once it grows.
   5: (save) => {

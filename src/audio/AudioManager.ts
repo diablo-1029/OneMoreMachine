@@ -13,7 +13,8 @@ export type SoundId =
   | 'thunk'
   | 'research'
   | 'contract'
-  | 'upgrade';
+  | 'upgrade'
+  | 'achievement';
 
 /** Minimum seconds between two plays of the same sound, so a busy factory never becomes a wall of noise. */
 const COOLDOWNS: Record<SoundId, number> = {
@@ -30,6 +31,7 @@ const COOLDOWNS: Record<SoundId, number> = {
   research: 0.3,
   contract: 0.3,
   upgrade: 0.1,
+  achievement: 0.5,
 };
 
 /** C major pentatonic across two octaves; any combination of these sounds consonant. */
@@ -188,6 +190,13 @@ export class AudioManager {
         this.tone('square', 300, 900, 0.14, 0.04);
         this.tone('sine', 190, 70, 0.2, 0.35, 0.12);
         this.noise(0.06, 2200, 'lowpass', 0.12);
+        break;
+      case 'achievement':
+        // A short rising fanfare.
+        this.tone('triangle', 523.25, 523.25, 0.14, 0.1);
+        this.tone('triangle', 659.25, 659.25, 0.14, 0.1, 0.1);
+        this.tone('triangle', 783.99, 783.99, 0.14, 0.1, 0.2);
+        this.tone('triangle', 1046.5, 1046.5, 0.5, 0.11, 0.3);
         break;
       case 'thunk':
         this.tone('sine', 120, 70, 0.06, 0.05);

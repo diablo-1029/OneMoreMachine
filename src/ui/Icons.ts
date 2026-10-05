@@ -64,6 +64,10 @@ export const ICONS: Record<string, string> = {
       '<path d="M16 22l5-8" stroke="currentColor" stroke-width="2.6"/>' +
       '<circle cx="16" cy="22" r="2.2" fill="currentColor"/>',
   ),
+  achievements: svg(
+    '<path d="M10 5h12v7a6 6 0 01-12 0z" stroke="currentColor" stroke-width="2.4"/>' +
+      '<path d="M10 7H5.500v2a4 4 0 004.500 4M22 7h4.500v2a4 4 0 01-4.500 4M16 18v5M11 27h10M13 23h6" stroke="currentColor" stroke-width="2.4"/>',
+  ),
   contracts: svg(
     '<rect x="7" y="6" width="18" height="21" rx="2.5" stroke="currentColor" stroke-width="2.4"/>' +
       '<rect x="12" y="3.500" width="8" height="5" rx="1.5" fill="currentColor"/>' +

@@ -33,6 +33,14 @@ export class Economy {
     this.totalEarned += amount;
   }
 
+  /**
+   * A gift that is not earnings, such as an achievement reward. Keeping it out of the total
+   * stops rewards from pushing the player up the very earnings ladder that pays them.
+   */
+  grant(amount: number): void {
+    this.money += amount;
+  }
+
   advance(dt: number): void {
     this.income.advance(dt);
   }
