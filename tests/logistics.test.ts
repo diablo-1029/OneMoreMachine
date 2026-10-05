@@ -243,7 +243,7 @@ describe('bottleneck analysis', () => {
     const findings = analyzeBottlenecks(sim.state, sim.metrics);
     expect(findings[0]).toMatchObject({ machineId: assembler.id, kind: 'starved' });
     expect(findings[0].problem).toContain('Iron Plate');
-    expect(findings[0].fix).toBe('One more Furnace would keep it fed.');
+    expect(findings[0].fix).toBe('One more Furnace making Iron Plate would keep it fed.');
   });
 
   it('reports nothing for a balanced line', () => {
@@ -264,7 +264,7 @@ describe('bottleneck analysis', () => {
     run(sim, 60);
     const [finding] = analyzeBottlenecks(sim.state, sim.metrics);
     expect(finding).toMatchObject({ machineId: miner.id, kind: 'blocked' });
-    expect(finding.fix).toBe('One more Furnace could use the spare Iron Ore.');
+    expect(finding.fix).toBe('One more Furnace making Iron Plate could use the spare Iron Ore.');
   });
 
   it('points downstream when a whole line is backed up', () => {

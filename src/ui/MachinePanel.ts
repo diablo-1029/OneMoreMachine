@@ -4,7 +4,7 @@ import type { Inventory, MachineState } from '../core/factory/MachineState';
 import { machineStatus, nominalRatePerMinute, STATUS_LABELS } from '../core/factory/MachineSystem';
 import type { Simulation } from '../core/game/Simulation';
 import { DIR_NAMES } from '../core/grid/GridPosition';
-import { getRecipe } from '../core/recipes/RecipeRegistry';
+import { getRecipe, recipesFor } from '../core/recipes/RecipeRegistry';
 import { CONVEYOR_INFO } from '../data/machines';
 import { getResource, RESOURCE_DEFINITIONS } from '../data/resources';
 import type { PlacementController, Selection } from '../input/PlacementController';
@@ -17,7 +17,7 @@ function resourceChip(resourceId: string, amount: string): HTMLElement {
   return el('span', { class: 'chip' }, [dot, `${amount} ${resource.name}`]);
 }
 
-type RowKey = 'status' | 'recipe' | 'input' | 'output' | 'progress' | 'rate' | 'efficiency';
+type RowKey = 'status' | 'makes' | 'recipe' | 'input' | 'output' | 'progress' | 'rate' | 'efficiency';
 
 /** Right-hand panel describing the selected machine or belt. */
 export class MachinePanel {
@@ -26,6 +26,7 @@ export class MachinePanel {
   private readonly description: HTMLElement;
   private readonly status: HTMLElement;
   private readonly recipe: HTMLElement;
+  private readonly makes: HTMLElement;
   private readonly input: HTMLElement;
   private readonly output: HTMLElement;
   private readonly inputLabel: HTMLElement;
@@ -41,13 +42,14 @@ export class MachinePanel {
   constructor(
     root: HTMLElement,
     private readonly sim: Simulation,
-    placement: PlacementController,
+    private readonly placement: PlacementController,
     onClick: () => void,
   ) {
     this.name = el('h2', { class: 'panel-title' });
     this.description = el('p', { class: 'panel-description' });
     this.status = el('span', { class: 'status' });
     this.recipe = el('div', { class: 'row-value' });
+    this.makes = el('div', { class: 'row-value recipe-choices' });
     this.input = el('div', { class: 'row-value' });
     this.output = el('div', { class: 'row-value' });
     this.rate = el('div', { class: 'row-value' });
@@ -89,6 +91,7 @@ export class MachinePanel {
       this.description,
       el('div', { class: 'rows' }, [
         row('status', 'Status', this.status),
+        row('makes', 'Makes', this.makes),
         row('recipe', 'Recipe', this.recipe),
         row('input', this.inputLabel, this.input),
         row('output', 'Output', this.output),
@@ -215,8 +218,34 @@ export class MachinePanel {
 
   private showCrafter(machine: MachineState): void {
     const def = getMachineDef(machine.type);
-    this.showRows(['status', 'recipe', 'input', 'output', 'progress', 'rate', 'efficiency']);
+    // Machines with a choice of products get a picker; the rest just show their recipe.
+    const choices = recipesFor(machine.type).filter((r) => this.sim.isRecipeAvailable(r.id));
+    const rows: RowKey[] = ['status', 'recipe', 'input', 'output', 'progress', 'rate', 'efficiency'];
+    if (choices.length > 1) rows.splice(1, 0, 'makes');
+    this.showRows(rows);
     setText(this.inputLabel, 'Input');
+
+    const choiceKey = machine.id + '|' + machine.recipeId + '|' + choices.map((r) => r.id).join(',');
+    if (this.makes.dataset.key !== choiceKey) {
+      this.makes.dataset.key = choiceKey;
+      this.makes.replaceChildren(
+        ...choices.map((choice) => {
+          const resource = getResource(choice.outputs[0].resourceId);
+          const dot = el('span', { class: 'resource-dot resource-' + resource.icon });
+          dot.style.background = resource.color;
+          return el(
+            'button',
+            {
+              class: choice.id === machine.recipeId ? 'recipe-choice active' : 'recipe-choice',
+              title: 'Make ' + resource.name,
+              attrs: { type: 'button', 'aria-pressed': String(choice.id === machine.recipeId) },
+              onClick: () => this.placement.setRecipe(machine.id, choice.id),
+            },
+            [dot, resource.name],
+          );
+        }),
+      );
+    }
 
     if (machine.recipeId) {
       const recipe = getRecipe(machine.recipeId);

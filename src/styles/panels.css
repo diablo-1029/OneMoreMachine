@@ -107,6 +107,33 @@
   color: var(--muted);
 }
 
+/* Buttons for choosing what a machine makes. */
+.recipe-choices {
+  gap: 5px;
+}
+
+.recipe-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: var(--panel-raised);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.recipe-choice:hover {
+  background: var(--panel-hover);
+}
+
+.recipe-choice.active {
+  border-color: var(--accent);
+  background: rgba(255, 181, 71, 0.18);
+}
+
 .status {
   padding: 2px 9px;
   border-radius: 999px;

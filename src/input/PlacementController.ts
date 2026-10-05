@@ -16,7 +16,7 @@ import { cellCenterX, cellCenterZ, worldToGridX, worldToGridY } from '../renderi
 
 export type Tool =
   | { mode: 'select' }
-  | { mode: 'build'; type: BuildableType; rotation: Direction }
+  | { mode: 'build'; type: BuildableType; rotation: Direction; recipeId?: string }
   | { mode: 'delete' };
 
 export type Selection = { kind: 'machine' | 'conveyor'; id: string } | null;
@@ -51,6 +51,7 @@ const FAILURE_MESSAGES: Record<CommandFailure, string> = {
   out_of_bounds: 'Outside the factory floor',
   blocked: 'Can’t build there',
   not_found: 'Nothing there',
+  invalid_recipe: 'That machine can’t make that',
 };
 
 /**
@@ -66,6 +67,8 @@ export class PlacementController {
   /** Last cell touched by the current conveyor or delete drag. */
   private dragCell: { x: number; y: number } | null = null;
   private buildHover: BuildHover | null = null;
+  /** The recipe last chosen for each machine type, so the next one built makes the same thing. */
+  private readonly lastRecipe = new Map<string, string>();
 
   constructor(
     private readonly sim: Simulation,
@@ -112,7 +115,7 @@ export class PlacementController {
       return;
     }
     const rotation = this.tool.mode === 'build' ? this.tool.rotation : 0;
-    this.setTool({ mode: 'build', type, rotation });
+    this.setTool({ mode: 'build', type, rotation, recipeId: this.lastRecipe.get(type) });
   }
 
   toggleDelete(): void {
@@ -133,7 +136,13 @@ export class PlacementController {
     const { factory } = this.sim.state;
     if (target.kind === 'machine') {
       const machine = factory.machines.get(target.id)!;
-      this.setTool({ mode: 'build', type: machine.type, rotation: machine.rotation });
+      if (machine.recipeId) this.lastRecipe.set(machine.type, machine.recipeId);
+      this.setTool({
+        mode: 'build',
+        type: machine.type,
+        rotation: machine.rotation,
+        recipeId: machine.recipeId ?? undefined,
+      });
     } else {
       this.setTool({ mode: 'build', type: 'conveyor', rotation: factory.conveyors.get(target.id)!.direction });
     }
@@ -247,6 +256,14 @@ export class PlacementController {
     this.events.emit('selectionChanged', selection);
   }
 
+  /** Changes what a machine makes and remembers the choice for the next one of its type. */
+  setRecipe(machineId: string, recipeId: string): void {
+    const result = this.sim.setRecipe(machineId, recipeId);
+    if (!result.ok) return this.fail(result.reason);
+    this.lastRecipe.set(result.value.type, recipeId);
+    this.audio.play('click');
+  }
+
   deleteSelected(): void {
     const target = this.selectionTarget();
     if (target) this.remove(target);
@@ -281,7 +298,7 @@ export class PlacementController {
     if (this.tool.mode !== 'build') return;
     const anchor = this.machineAnchor(ndcX, ndcY, this.tool.type, this.tool.rotation);
     if (!anchor) return;
-    const result = this.sim.placeMachine(this.tool.type, anchor.x, anchor.y, this.tool.rotation);
+    const result = this.sim.placeMachine(this.tool.type, anchor.x, anchor.y, this.tool.rotation, this.tool.recipeId);
     if (!result.ok) {
       this.fail(result.reason);
       return;

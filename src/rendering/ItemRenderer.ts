@@ -13,7 +13,7 @@ const MAX_ITEMS_PER_RESOURCE = 1024;
 const APPEAR_SECONDS = 0.16;
 const VANISH_SECONDS = 0.14;
 
-interface ItemVisualSpec {
+export interface ItemVisualSpec {
   geometry: THREE.BufferGeometry;
   /** Height of the item's centre above the belt surface. */
   lift: number;
@@ -24,7 +24,7 @@ interface ItemVisualSpec {
 }
 
 /** Visuals keyed by ResourceDefinition.icon; new resources only need an entry here. */
-function createItemVisuals(): Record<string, ItemVisualSpec> {
+export function createItemVisuals(): Record<string, ItemVisualSpec> {
   return {
     ore: {
       geometry: merge([
@@ -49,6 +49,46 @@ function createItemVisuals(): Record<string, ItemVisualSpec> {
       lift: 0.04,
       spin: 1.6,
       alignToTravel: false,
+    },
+    copper_ore: {
+      geometry: merge([
+        paint(new THREE.DodecahedronGeometry(0.14, 0).scale(1, 0.85, 1.1), 0xa8623c),
+        paint(new THREE.DodecahedronGeometry(0.07, 0).translate(-0.07, 0.06, 0.06), 0x5fae96),
+      ]),
+      lift: 0.11,
+      spin: 0,
+      alignToTravel: false,
+    },
+    copper_plate: {
+      geometry: merge([
+        paint(new THREE.BoxGeometry(0.32, 0.05, 0.22), 0xd98452),
+        paint(new THREE.BoxGeometry(0.27, 0.02, 0.17).translate(0, 0.035, 0), 0xeea272),
+      ]),
+      lift: 0.03,
+      spin: 0,
+      alignToTravel: true,
+    },
+    wire: {
+      // A coil: a fat ring lying flat with a darker core.
+      geometry: merge([
+        paint(new THREE.TorusGeometry(0.1, 0.045, 6, 12).rotateX(Math.PI / 2), 0xf0a060),
+        paint(new THREE.CylinderGeometry(0.05, 0.05, 0.1, 8), 0x7a5236),
+      ]),
+      lift: 0.05,
+      spin: 0,
+      alignToTravel: false,
+    },
+    motor: {
+      // A drum lying along the direction of travel, with a shaft and a mounting foot.
+      geometry: merge([
+        paint(new THREE.CylinderGeometry(0.11, 0.11, 0.22, 10).rotateZ(Math.PI / 2), 0x4aa3b5),
+        paint(new THREE.CylinderGeometry(0.115, 0.115, 0.05, 10).rotateZ(Math.PI / 2).translate(-0.06, 0, 0), 0x2c6a75),
+        paint(new THREE.CylinderGeometry(0.03, 0.03, 0.12, 6).rotateZ(Math.PI / 2).translate(0.17, 0, 0), 0xcdd3dc),
+        paint(new THREE.BoxGeometry(0.2, 0.04, 0.24).translate(0, -0.11, 0), 0x3b4252),
+      ]),
+      lift: 0.13,
+      spin: 0,
+      alignToTravel: true,
     },
   };
 }

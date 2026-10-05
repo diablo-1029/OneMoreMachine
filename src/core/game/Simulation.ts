@@ -15,7 +15,7 @@ import { routerAccepts, routerEntryLimit, routerInsert, updateRouter, type Route
 import { FactoryMetrics } from '../stats/FactoryMetrics';
 import { rotateDir, type Direction } from '../grid/GridPosition';
 import { validatePlacement, type PlacementFailure } from '../grid/PlacementValidator';
-import { defaultRecipeId } from '../recipes/RecipeRegistry';
+import { defaultRecipeId, getRecipe, hasRecipe } from '../recipes/RecipeRegistry';
 import { TICK_DT } from './Constants';
 import { EventBus } from './EventBus';
 import type { GameState } from './GameState';
@@ -37,7 +37,7 @@ export interface SimulationEvents {
   tutorialAdvanced: number;
 }
 
-export type CommandFailure = PlacementFailure | 'cannot_afford' | 'not_found';
+export type CommandFailure = PlacementFailure | 'cannot_afford' | 'not_found' | 'invalid_recipe';
 export type CommandResult<T> = { ok: true; value: T } | { ok: false; reason: CommandFailure };
 
 const fail = (reason: CommandFailure): { ok: false; reason: CommandFailure } => ({ ok: false, reason });
@@ -185,12 +185,37 @@ export class Simulation {
     return { ok: true, value: null };
   }
 
-  placeMachine(type: string, gridX: number, gridY: number, rotation: Direction): CommandResult<MachineState> {
+  /** Whether the player may currently use a recipe at all. Everything is available until research gates it. */
+  isRecipeAvailable(recipeId: string): boolean {
+    return hasRecipe(recipeId);
+  }
+
+  /** Whether a machine of this type may run the recipe. */
+  canUseRecipe(type: string, recipeId: string): boolean {
+    return hasRecipe(recipeId) && getRecipe(recipeId).machineType === type;
+  }
+
+  /** `recipeId` picks what the machine makes; omitted, it starts on the type's first recipe. */
+  placeMachine(
+    type: string,
+    gridX: number,
+    gridY: number,
+    rotation: Direction,
+    recipeId?: string,
+  ): CommandResult<MachineState> {
     const check = this.canPlaceMachine(type, gridX, gridY, rotation);
     if (!check.ok) return check;
+    if (recipeId !== undefined && !this.canUseRecipe(type, recipeId)) return fail('invalid_recipe');
     const { factory, economy } = this.state;
     economy.spend(buildCost(type));
-    const machine = createMachineState(factory.newEntityId('m'), type, gridX, gridY, rotation, defaultRecipeId(type));
+    const machine = createMachineState(
+      factory.newEntityId('m'),
+      type,
+      gridX,
+      gridY,
+      rotation,
+      recipeId ?? defaultRecipeId(type),
+    );
     factory.addMachine(machine);
     this.topologyChanged();
     this.events.emit('machinePlaced', machine);
@@ -245,6 +270,32 @@ export class Simulation {
     machine.rotation = rotation;
     factory.occupancy.occupy(cells, { kind: 'machine', id: machine.id });
     this.topologyChanged();
+    this.events.emit('machineChanged', machine);
+    return { ok: true, value: machine };
+  }
+
+  /**
+   * Switches what a machine makes. The craft in progress is abandoned and ingredients the
+   * new recipe cannot use are discarded; finished products still leave as normal.
+   */
+  setRecipe(id: string, recipeId: string): CommandResult<MachineState> {
+    const machine = this.state.factory.machines.get(id);
+    if (!machine) return fail('not_found');
+    if (!this.canUseRecipe(machine.type, recipeId)) return fail('invalid_recipe');
+    if (machine.recipeId === recipeId) return { ok: true, value: machine };
+
+    const recipe = getRecipe(recipeId);
+    const kept: Record<string, number> = {};
+    for (const input of recipe.inputs) {
+      const held = machine.inputInventory[input.resourceId] ?? 0;
+      if (held > 0) kept[input.resourceId] = held;
+    }
+    machine.recipeId = recipeId;
+    machine.inputInventory = kept;
+    machine.active = false;
+    machine.progress = 0;
+    // Its past efficiency says nothing about the new job.
+    this.metrics.forgetMachine(machine.id);
     this.events.emit('machineChanged', machine);
     return { ok: true, value: machine };
   }

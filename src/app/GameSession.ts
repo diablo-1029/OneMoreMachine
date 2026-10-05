@@ -20,6 +20,7 @@ import { SelectionEffect } from '../rendering/effects/SelectionEffect';
 import { ItemRenderer } from '../rendering/ItemRenderer';
 import { machineCenter, MachineRenderer } from '../rendering/MachineRenderer';
 import { PlacementRenderer } from '../rendering/PlacementRenderer';
+import { RecipeMarkerRenderer } from '../rendering/RecipeMarkerRenderer';
 import type { Renderer } from '../rendering/Renderer';
 import type { SceneManager } from '../rendering/SceneManager';
 import { StatusBadgeRenderer } from '../rendering/StatusBadgeRenderer';
@@ -65,6 +66,7 @@ export class GameSession {
   private readonly items: ItemRenderer;
   private readonly selection: SelectionEffect;
   private readonly badges: StatusBadgeRenderer;
+  private readonly markers: RecipeMarkerRenderer;
   private readonly overlay: BottleneckOverlay;
   /** Price tag that follows the build ghost. */
   private readonly costLabel: HTMLElement;
@@ -104,6 +106,7 @@ export class GameSession {
     this.machines = new MachineRenderer(scene, this.effects);
     this.selection = new SelectionEffect(scene);
     this.badges = new StatusBadgeRenderer(scene);
+    this.markers = new RecipeMarkerRenderer(scene);
     this.overlay = new BottleneckOverlay(scene);
     this.costLabel = el('div', { class: 'ghost-cost hidden' });
     ctx.uiRoot.append(this.costLabel);
@@ -306,6 +309,7 @@ export class GameSession {
     this.effects.update(realDt);
     this.selection.update(this.realTime);
     this.badges.update(factory, this.sim.metrics, this.ctx.camera.camera, this.realTime);
+    this.markers.update(factory, this.realTime);
     this.overlay.update(factory, this.sim.metrics, realDt);
     this.updateCostLabel();
     this.floatingText.update(realDt, this.ctx.camera.camera, this.ctx.renderer.width, this.ctx.renderer.height);

@@ -9,7 +9,7 @@ export const MACHINE_DEFINITIONS: MachineDefinition[] = [
   {
     type: 'miner',
     name: 'Miner',
-    description: 'Drills Iron Ore out of the ground.',
+    description: 'Drills ore out of the ground.',
     cost: BALANCE.costs.miner,
     width: 2,
     height: 2,
@@ -20,7 +20,7 @@ export const MACHINE_DEFINITIONS: MachineDefinition[] = [
   {
     type: 'furnace',
     name: 'Furnace',
-    description: 'Smelts Iron Ore into Iron Plates.',
+    description: 'Smelts ore into plates.',
     cost: BALANCE.costs.furnace,
     width: 2,
     height: 2,
@@ -34,13 +34,15 @@ export const MACHINE_DEFINITIONS: MachineDefinition[] = [
   {
     type: 'assembler',
     name: 'Assembler',
-    description: 'Presses Iron Plates into Gears.',
+    description: 'Builds parts from plates, wire and other parts.',
     cost: BALANCE.costs.assembler,
     width: 2,
     height: 2,
     behavior: 'crafter',
+    // Two hatches so each ingredient of a mixed recipe can arrive on its own belt.
     ports: [
       { localX: 0, localY: 0, side: 2, type: 'input' },
+      { localX: 0, localY: 1, side: 2, type: 'input' },
       { localX: 1, localY: 0, side: 0, type: 'output' },
     ],
     outputCapacity: 2,

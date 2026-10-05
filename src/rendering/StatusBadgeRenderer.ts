@@ -6,7 +6,8 @@ import { machineCenter } from './MachineRenderer';
 const MAX_BADGES = 128;
 /** A machine must be stalled this long before it gets a badge, so brief gaps do not flicker. */
 const STALL_SECONDS = 3;
-const BADGE_HEIGHT = 2.35;
+/** Above the product marker that floats over each machine. */
+const BADGE_HEIGHT = 3.0;
 
 /** Draws a round badge with a glyph: amber dots for "waiting", a red bar for "backed up". */
 function badgeTexture(kind: StallKind): THREE.CanvasTexture {
