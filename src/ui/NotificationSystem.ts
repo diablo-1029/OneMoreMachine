@@ -17,7 +17,8 @@ export class NotificationSystem {
     root.append(this.hint, this.toasts);
   }
 
-  toast(message: string): void {
+  /** `seconds` is how long it stays; the default suits a short remark. */
+  toast(message: string, seconds = TOAST_SECONDS): void {
     // Dragging a belt across invalid ground would otherwise stack the same message many times.
     const now = performance.now();
     if (message === this.lastToast && now - this.lastToastAt < 1200) return;
@@ -29,7 +30,7 @@ export class NotificationSystem {
     window.setTimeout(() => {
       toast.classList.add('leaving');
       window.setTimeout(() => toast.remove(), 250);
-    }, TOAST_SECONDS * 1000);
+    }, seconds * 1000);
   }
 
   /** Shows the current tutorial hint, or hides the banner when there is none. */

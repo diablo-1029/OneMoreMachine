@@ -11,12 +11,15 @@ import { SceneManager } from '../rendering/SceneManager';
 import { setWorldGrid } from '../rendering/WorldMapping';
 import { resolveCosmetics } from '../data/cosmetics';
 import { DEFAULT_ENVIRONMENT, getEnvironment } from '../data/environments';
+import { SaveError } from '../core/save/SaveSchema';
 import { el } from '../ui/dom';
+import { downloadText, pickTextFile, saveFileName, showNotice } from '../ui/Notice';
 import { reducedMotion, setMotionPreference, setUiScale } from '../ui/preferences';
 import { MainMenu } from '../ui/MainMenu';
 import { SettingsPanel } from '../ui/SettingsPanel';
 import { GameLoop } from './GameLoop';
 import { GameSession } from './GameSession';
+import { TabGuard } from './TabGuard';
 
 const CONTINUE_FLAG = 'omm.continue';
 
@@ -25,7 +28,10 @@ const CONTINUE_FLAG = 'omm.continue';
  * then hands over to a GameSession once the player continues or starts a factory.
  */
 export class App {
-  private readonly saveManager = new SaveManager(new URLSearchParams(window.location.search).get('slot') ?? '');
+  private readonly slot = new URLSearchParams(window.location.search).get('slot') ?? '';
+  private readonly saveManager = new SaveManager(this.slot);
+  private loop: GameLoop | null = null;
+  private failed = false;
   private readonly settings: GameSettings;
   private readonly audio: AudioManager;
   private renderer!: Renderer;
@@ -84,15 +90,100 @@ export class App {
       onNewFactory: (environmentId) => void this.newGame(environmentId),
       onPreviewEnvironment: (environmentId) => this.showEnvironment(environmentId),
       onSettings: () => menuSettings.open(),
+      onLoadFile: () => void this.loadSaveFile(),
     });
     this.menu.show(await this.saveManager.hasSave());
     // Straight back into play after selling up, without a stop at the menu.
     if (this.takeFlag(CONTINUE_FLAG)) void this.continueGame();
 
-    new GameLoop(
+    this.loop = new GameLoop(
       (dt) => this.frame(dt),
       (dt) => this.session?.background(dt),
-    ).start();
+      (error) => this.fail(error),
+    );
+    this.loop.start();
+
+    let graphicsNotice: { close: () => void } | null = null;
+    this.renderer.onContextChange((lost) => {
+      graphicsNotice?.close();
+      graphicsNotice = lost
+        ? showNotice(this.uiRoot, {
+            title: 'Graphics were reset',
+            body: 'The browser took the 3D view away for a moment. Your factory is still running and will reappear when it comes back. If it does not, reload the page.',
+            actions: [{ label: 'Reload', primary: true, onClick: () => this.reload() }],
+          })
+        : null;
+    });
+  }
+
+  private reload(): void {
+    this.session?.saveIfSound();
+    window.location.reload();
+  }
+
+  /**
+   * The end of the line for an error nothing else caught. The factory is saved if it is still
+   * sound, everything stops, and the player is told what happened and how to carry on.
+   */
+  fail(error: unknown): void {
+    if (this.failed) return;
+    this.failed = true;
+    console.error(error);
+    this.loop?.stop();
+    try {
+      this.session?.saveIfSound();
+      this.session?.retire();
+    } catch {
+      // The last good save stands.
+    }
+    showNotice(this.uiRoot, {
+      title: 'Something went wrong',
+      body: 'The game hit an error and had to stop. Your factory was saved a moment ago; reloading should bring it back.',
+      detail: error instanceof Error ? error.message : String(error),
+      actions: [
+        { label: 'Reload', primary: true, onClick: () => window.location.reload() },
+        { label: 'Download my save', onClick: () => void this.downloadStoredSave() },
+      ],
+    });
+  }
+
+  private async downloadStoredSave(): Promise<void> {
+    const text = await this.saveManager.exportText();
+    if (text) downloadText(saveFileName(), text);
+  }
+
+  /** Brings in a factory from a file, after checking with the player if it would replace one. */
+  private async loadSaveFile(): Promise<void> {
+    if (this.session || (await this.saveManager.hasSave())) {
+      const confirmed = await new Promise<boolean>((resolve) => {
+        const notice = showNotice(this.uiRoot, {
+          title: 'Replace your factory?',
+          body: 'Loading a save file replaces the factory saved in this browser. This cannot be undone.',
+          actions: [
+            { label: 'Choose a file', primary: true, onClick: () => (notice.close(), resolve(true)) },
+            { label: 'Cancel', onClick: () => (notice.close(), resolve(false)) },
+          ],
+        });
+      });
+      if (!confirmed) return;
+    }
+    const text = await pickTextFile('.json,application/json');
+    if (text === null) return;
+    try {
+      this.saveManager.importText(text, this.settings);
+    } catch (error) {
+      const notice = showNotice(this.uiRoot, {
+        title: 'Could not load that file',
+        body: 'It is not a One More Machine save, or it is damaged. Nothing was changed.',
+        detail: error instanceof SaveError ? error.message : undefined,
+        actions: [{ label: 'OK', primary: true, onClick: () => notice.close() }],
+      });
+      return;
+    }
+    // The page restarts on the loaded factory; the one being played must not save over it.
+    this.session?.retire();
+    this.setFlag(CONTINUE_FLAG);
+    window.location.reload();
   }
 
   /** Redraws the scenery for another environment, keeping the floor as it is. */
@@ -167,6 +258,7 @@ export class App {
       onSettingsChanged: (settings) => this.applySettings(settings),
       onGridChanged: (w, h) => this.buildWorld(w, h),
       awaySeconds,
+      onLoadSaveFile: () => void this.loadSaveFile(),
       onPrestige: (next) => {
         // The page is reloaded onto the new factory; a session is only ever built once per page.
         this.saveManager.save(next, this.settings);
@@ -175,6 +267,15 @@ export class App {
       },
     });
     this.menu.hide();
+    const session = this.session;
+    new TabGuard(this.slot, () => {
+      session.retire();
+      showNotice(this.uiRoot, {
+        title: 'Open in another tab',
+        body: 'This factory has been opened in another tab, which has taken over. To play here instead, close that tab and reload this one.',
+        actions: [{ label: 'Reload', primary: true, onClick: () => window.location.reload() }],
+      });
+    });
     // Now that there is a factory, cosmetics it has unlocked can be shown.
     this.applySettings(this.settings);
 

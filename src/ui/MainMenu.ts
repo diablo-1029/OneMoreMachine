@@ -8,6 +8,8 @@ export interface MainMenuActions {
   /** Asks for the scenery behind the menu to show a site, while the player is choosing. */
   onPreviewEnvironment: (environmentId: string) => void;
   onSettings: () => void;
+  /** Brings in a factory from a save file. */
+  onLoadFile: () => void;
 }
 
 /** Title screen. Shows Continue only when a save exists, and reports a save that failed to load. */
@@ -58,6 +60,7 @@ export class MainMenu {
     this.buttons.replaceChildren(
       ...(hasSave ? [this.button('Continue', true, this.actions.onContinue)] : []),
       newFactory,
+      this.button('Load save file', false, this.actions.onLoadFile),
       this.button('Settings', false, this.actions.onSettings),
     );
     this.overlay.classList.remove('hidden');
@@ -115,7 +118,10 @@ export class MainMenu {
     this.heading.classList.add('hidden');
     this.message.textContent = 'Could not load save.';
     this.message.classList.remove('hidden');
-    this.buttons.replaceChildren(this.button('Start New Factory', true, () => this.chooseEnvironment()));
+    this.buttons.replaceChildren(
+      this.button('Start New Factory', true, () => this.chooseEnvironment()),
+      this.button('Load save file', false, this.actions.onLoadFile),
+    );
     this.overlay.classList.remove('hidden');
   }
 

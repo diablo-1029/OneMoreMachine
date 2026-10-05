@@ -13,6 +13,7 @@ import { TickSystem, type GameSpeed } from '../core/game/TickSystem';
 import { currentHint } from '../core/game/Tutorial';
 import type { SaveManager } from '../core/save/SaveManager';
 import type { GameSettings } from '../core/save/SaveSchema';
+import { restoreGame, serializeGame } from '../core/save/Serializer';
 import type { BeltStyle, CosmeticProgress } from '../data/cosmetics';
 import { EXPANSION_STEPS } from '../data/expansion';
 import { InputManager } from '../input/InputManager';
@@ -44,6 +45,7 @@ import { HUD, type HudPanel } from '../ui/HUD';
 import { hudVisibility } from '../ui/hudVisibility';
 import { KeyHints } from '../ui/KeyHints';
 import { MachinePanel } from '../ui/MachinePanel';
+import { downloadText, saveFileName } from '../ui/Notice';
 import { NotificationSystem } from '../ui/NotificationSystem';
 import { OfflineReportPanel } from '../ui/OfflineReportPanel';
 import { uiScale } from '../ui/preferences';
@@ -75,6 +77,8 @@ export interface SessionContext {
   onGridChanged: (width: number, height: number) => void;
   /** Seconds since the loaded save was written; 0 for a new factory. */
   awaySeconds: number;
+  /** Asks for a save file and, if the player goes through with it, replaces this factory. */
+  onLoadSaveFile: () => void;
   /** Replaces this factory with a newly founded one and restarts the game on it. */
   onPrestige: (next: GameState) => void;
 }
@@ -271,7 +275,19 @@ export class GameSession {
         this.save();
         window.location.reload();
       },
+      onDownloadSave: () => {
+        this.save();
+        downloadText(saveFileName(), JSON.stringify(serializeGame(this.sim.state, ctx.settings)));
+      },
+      onLoadSave: ctx.onLoadSaveFile,
     });
+    // Told once; a toast every half minute would only be noise.
+    let warned = false;
+    ctx.saveManager.onFailure = () => {
+      if (warned) return;
+      warned = true;
+      this.notifications.toast('Could not save — browser storage is full or blocked. Download a save from Settings.', 8);
+    };
 
     if (import.meta.env.DEV) {
       const debugRenderer = new DebugRenderer(scene);
@@ -476,6 +492,27 @@ export class GameSession {
     this.saveCountdown = -1;
   }
 
+  /**
+   * Saves only if what would be written can be loaded again. Used after something has gone
+   * wrong, when a damaged factory must not replace the last good save.
+   */
+  saveIfSound(): void {
+    if (this.retired) return;
+    try {
+      restoreGame(JSON.parse(JSON.stringify(serializeGame(this.sim.state, this.ctx.settings))));
+    } catch {
+      return;
+    }
+    this.save();
+  }
+
+  /** Stops this session from saving or taking input, for good: another copy of the factory has taken over. */
+  retire(): void {
+    this.retired = true;
+    this.input.setEnabled(false);
+    this.setSpeed(0);
+  }
+
   private requestSave(): void {
     this.saveCountdown = SAVE_DEBOUNCE;
   }
@@ -555,6 +592,7 @@ export class GameSession {
    * Simulation only; nothing is drawn.
    */
   background(realDt: number): void {
+    if (this.retired) return;
     const { factory } = this.sim.state;
     if (realDt >= OFFLINE.minSeconds) {
       // A long gap with the page still open (the computer slept, or the browser froze the

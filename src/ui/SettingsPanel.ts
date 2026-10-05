@@ -20,6 +20,10 @@ export interface SettingsActions {
   /** In-game only: these are omitted on the main menu. */
   onSaveNow?: () => void;
   onMainMenu?: () => void;
+  /** Hands the player the factory as a file to keep. */
+  onDownloadSave?: () => void;
+  /** Replaces the factory with one from a file. */
+  onLoadSave?: () => void;
   /** What the current factory has earned, for unlocking cosmetics. Omitted on the main menu. */
   getProgress?: () => CosmeticProgress;
 }
@@ -135,6 +139,30 @@ export class SettingsPanel {
     const buttons: HTMLElement[] = [];
     if (actions.onSaveNow) {
       buttons.push(el('button', { class: 'button', text: 'Save now', attrs: { type: 'button' }, onClick: actions.onSaveNow }));
+    }
+    if (actions.onDownloadSave) {
+      buttons.push(
+        el('button', {
+          class: 'button',
+          text: 'Download save',
+          title: 'Download save — a copy of this factory as a file, to keep safe or move to another browser',
+          attrs: { type: 'button' },
+          onClick: actions.onDownloadSave,
+        }),
+      );
+    }
+    if (actions.onLoadSave) {
+      buttons.push(
+        el('button', {
+          class: 'button',
+          text: 'Load save file',
+          attrs: { type: 'button' },
+          onClick: () => {
+            this.close();
+            actions.onLoadSave?.();
+          },
+        }),
+      );
     }
     if (actions.onMainMenu) {
       buttons.push(el('button', { class: 'button', text: 'Save & quit to menu', attrs: { type: 'button' }, onClick: actions.onMainMenu }));

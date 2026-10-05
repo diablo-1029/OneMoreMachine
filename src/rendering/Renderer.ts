@@ -21,6 +21,23 @@ export class Renderer {
 
     new ResizeObserver(() => this.resize()).observe(container);
     this.resize();
+
+    // Browsers take the graphics context away now and then (a driver reset, too many tabs).
+    // Asking to keep the canvas lets them hand it back, and three.js rebuilds what it needs.
+    this.canvas.addEventListener('webglcontextlost', (event) => {
+      event.preventDefault();
+      for (const listener of this.contextListeners) listener(true);
+    });
+    this.canvas.addEventListener('webglcontextrestored', () => {
+      for (const listener of this.contextListeners) listener(false);
+    });
+  }
+
+  private readonly contextListeners: ((lost: boolean) => void)[] = [];
+
+  /** Reports the graphics context being lost (true) and coming back (false). */
+  onContextChange(listener: (lost: boolean) => void): void {
+    this.contextListeners.push(listener);
   }
 
   get canvas(): HTMLCanvasElement {

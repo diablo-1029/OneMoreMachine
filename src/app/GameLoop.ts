@@ -17,20 +17,41 @@ export class GameLoop {
     private readonly frame: (realDt: number) => void,
     /** Called instead of `frame` while frames are not being delivered. */
     private readonly background: (realDt: number) => void,
+    /** Called once if either callback throws. The loop stops rather than failing every frame. */
+    private readonly onError: (error: unknown) => void,
   ) {}
+
+  private stopped = false;
+  private watchdog = 0;
+
+  /** Ends the loop for good. */
+  stop(): void {
+    this.stopped = true;
+    window.clearInterval(this.watchdog);
+  }
+
+  private fail(error: unknown): void {
+    if (this.stopped) return;
+    this.stop();
+    this.onError(error);
+  }
 
   start(): void {
     this.lastTime = performance.now();
     this.lastWall = Date.now();
     requestAnimationFrame(this.onFrame);
-    window.setInterval(() => {
+    this.watchdog = window.setInterval(() => {
       const wall = Date.now();
       const elapsed = (wall - this.lastWall) / 1000;
       if (elapsed < WATCHDOG_INTERVAL_MS / 1000) return;
       this.lastWall = wall;
       this.lastTime = performance.now();
       // The full gap is passed on; the game decides how to catch up on a long one.
-      this.background(elapsed);
+      try {
+        this.background(elapsed);
+      } catch (error) {
+        this.fail(error);
+      }
     }, WATCHDOG_INTERVAL_MS);
   }
 
@@ -38,7 +59,12 @@ export class GameLoop {
     const dt = Math.max(0, (now - this.lastTime) / 1000);
     this.lastTime = now;
     this.lastWall = Date.now();
-    this.frame(Math.min(dt, MAX_FRAME_DT));
+    if (this.stopped) return;
+    try {
+      this.frame(Math.min(dt, MAX_FRAME_DT));
+    } catch (error) {
+      return this.fail(error);
+    }
     requestAnimationFrame(this.onFrame);
   };
 }

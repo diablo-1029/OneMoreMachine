@@ -7,4 +7,5 @@ const viewport = document.getElementById('viewport');
 const ui = document.getElementById('ui');
 if (!viewport || !ui) throw new Error('Missing #viewport or #ui element');
 
-void new App(viewport, ui).start();
+const app = new App(viewport, ui);
+app.start().catch((error: unknown) => app.fail(error));

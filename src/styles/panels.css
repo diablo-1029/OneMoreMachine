@@ -402,6 +402,28 @@
   gap: 12px;
 }
 
+/* Messages that stop play sit above every other panel and dialog. */
+.notice {
+  z-index: 50;
+}
+
+.notice .panel-description {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.notice-detail {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.25);
+  font: 12px/1.4 ui-monospace, Consolas, monospace;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 .modal-subtitle {
   margin: 6px 0 0;
   font-size: 12px;

@@ -29,6 +29,8 @@ function timestampOf(raw: unknown): number {
  */
 export class SaveManager {
   private db: Promise<IDBDatabase | null> | null = null;
+  /** Called when a save could not be written to either store, so the player can be told. */
+  onFailure: (() => void) | null = null;
   private readonly saveKey: string;
   private readonly localSaveKey: string;
 
@@ -61,16 +63,24 @@ export class SaveManager {
     });
   }
 
-  private async writeIndexedDb(data: SaveData | undefined): Promise<void> {
+  /** Resolves with whether the write went through. */
+  private async writeIndexedDb(data: SaveData | undefined): Promise<boolean> {
     const db = await this.database();
-    if (!db) return;
-    try {
-      const store = db.transaction(STORE, 'readwrite').objectStore(STORE);
-      if (data) store.put(data, this.saveKey);
-      else store.delete(this.saveKey);
-    } catch {
-      // localStorage still holds the save.
-    }
+    if (!db) return false;
+    return new Promise((resolve) => {
+      try {
+        const transaction = db.transaction(STORE, 'readwrite');
+        transaction.oncomplete = () => resolve(true);
+        transaction.onerror = () => resolve(false);
+        transaction.onabort = () => resolve(false);
+        const store = transaction.objectStore(STORE);
+        if (data) store.put(data, this.saveKey);
+        else store.delete(this.saveKey);
+      } catch {
+        // localStorage may still hold the save.
+        resolve(false);
+      }
+    });
   }
 
   private readLocal(): unknown {
@@ -113,13 +123,48 @@ export class SaveManager {
 
   /** Synchronous as far as localStorage goes, so it is safe to call during page unload. */
   save(state: GameState, settings: GameSettings): void {
-    const data = serializeGame(state, settings);
+    this.write(serializeGame(state, settings));
+  }
+
+  private write(data: SaveData): void {
+    let local = true;
     try {
       localStorage.setItem(this.localSaveKey, JSON.stringify(data));
     } catch {
       // Storage full or blocked; IndexedDB may still succeed.
+      local = false;
     }
-    void this.writeIndexedDb(data);
+    void this.writeIndexedDb(data).then((stored) => {
+      if (!stored && !local) this.onFailure?.();
+    });
+  }
+
+  /** The stored save as text the player can keep as a file, or null if there is none. */
+  async exportText(): Promise<string | null> {
+    const raw = await this.readNewest();
+    return raw === undefined || raw === null ? null : JSON.stringify(raw);
+  }
+
+  /**
+   * Replaces the stored save with one from a file. The file goes through the same upgrade and
+   * validation as any save being loaded; a file that fails throws SaveError and nothing is
+   * replaced. The copy is stamped with the current time, so it earns no time-away income.
+   */
+  importText(text: string, settings: GameSettings): void {
+    let raw: unknown;
+    try {
+      raw = JSON.parse(text);
+    } catch {
+      throw new SaveError('Not a save file');
+    }
+    let state: GameState;
+    try {
+      state = restoreGame(raw);
+    } catch (error) {
+      if (error instanceof SaveError) throw error;
+      throw new SaveError(error instanceof Error ? error.message : 'Unknown save error');
+    }
+    this.write(serializeGame(state, settings));
   }
 
   async clear(): Promise<void> {
