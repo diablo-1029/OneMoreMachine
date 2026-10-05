@@ -35,6 +35,8 @@ const MIN_SHARE = 0.2;
 const MIN_OBSERVED = 8;
 /** Above this, a neighbour is considered to have the same problem, i.e. the cause lies beyond it. */
 const KNOCK_ON_SHARE = 0.3;
+/** A machine working at least this share of the time has no spare capacity to speak of. */
+const SATURATED_SHARE = 0.95;
 /** Findings that are only symptoms of another one rank below real causes. */
 const SYMPTOM_WEIGHT = 0.3;
 
@@ -131,6 +133,36 @@ export function analyzeBottlenecks(state: GameState, metrics: FactoryMetrics): B
   /** What one standard machine running a recipe turns out per minute on this site. */
   const siteRate = (recipe: Recipe) => (60 / recipe.duration) * (environment.speed[recipe.machineType] ?? 1);
 
+  /**
+   * Could the factory do anything with more of what this machine makes? Only if its output
+   * reaches a Seller, or a machine that still has time to spare and whose own output is
+   * wanted in turn. A machine feeding one that already runs flat out is not a bottleneck,
+   * however much of its time it spends waiting.
+   */
+  const wanted = new Map<string, boolean>();
+  const outputIsWanted = (machine: MachineState): boolean => {
+    const known = wanted.get(machine.id);
+    if (known !== undefined) return known;
+    // Guards against loops while this machine is being worked out.
+    wanted.set(machine.id, false);
+    const consumers = downstreamMachines(state.factory, machine);
+    // Nothing connected yet, as when a line is still being built: assume the output will be wanted.
+    if (consumers.length === 0) {
+      wanted.set(machine.id, true);
+      return true;
+    }
+    const result = consumers.some((next) => {
+      const behavior = getMachineDef(next.type).behavior;
+      if (behavior === 'seller') return true;
+      if (behavior !== 'crafter' || !next.enabled) return false;
+      const busy = metrics.shares(next.id);
+      if (busy.observed >= MIN_OBSERVED && busy.working >= SATURATED_SHARE) return false;
+      return outputIsWanted(next);
+    });
+    wanted.set(machine.id, result);
+    return result;
+  };
+
   for (const machine of machines) {
     if (!machine.enabled || !machine.recipeId) continue;
     const def = getMachineDef(machine.type);
@@ -140,7 +172,7 @@ export function analyzeBottlenecks(state: GameState, metrics: FactoryMetrics): B
     const recipe = getRecipe(machine.recipeId);
     const craftsPerMinute = (60 / recipe.duration) * machineSpeed(machine, environment);
 
-    if (shares.waiting >= MIN_SHARE && recipe.inputs.length > 0) {
+    if (shares.waiting >= MIN_SHARE && recipe.inputs.length > 0 && outputIsWanted(machine)) {
       // The scarcest input is the one the machine currently holds least of, relative to need.
       const input = [...recipe.inputs].sort(
         (a, b) =>

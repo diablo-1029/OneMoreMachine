@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { buildCost } from '../src/core/economy/Pricing';
 import { TICK_DT } from '../src/core/game/Constants';
+import { FactoryState } from '../src/core/factory/FactoryState';
+import { getMachineDef } from '../src/core/factory/MachineRegistry';
 import { createNewGame } from '../src/core/game/GameState';
 import { starsForEarnings } from '../src/core/game/Prestige';
 import { Simulation } from '../src/core/game/Simulation';
-import { getResearchNode } from '../src/core/research/Research';
+import { allResearchIds, getResearchNode } from '../src/core/research/Research';
 import { analyzeBottlenecks } from '../src/core/stats/Bottlenecks';
 
 /**
@@ -19,8 +21,20 @@ class Player {
   readonly sim: Simulation;
   readonly log: { label: string; minutes: number; money: number; perMinute: number }[] = [];
 
-  constructor() {
-    this.sim = new Simulation(createNewGame('meadow'));
+  /**
+   * With no arguments, a new game exactly as a player gets it. Given a floor size, a sandbox
+   * instead: everything researched and plenty of money and power, for testing a layout on its own.
+   */
+  constructor(sandboxSize?: number) {
+    const state = createNewGame('meadow');
+    if (sandboxSize) {
+      state.factory = new FactoryState(sandboxSize, sandboxSize);
+      state.research = allResearchIds();
+      state.economy.money = 1_000_000;
+      state.power.baseSupply = 1000;
+    }
+    this.sim = new Simulation(state);
+    if (sandboxSize) state.contracts.active = [];
   }
 
   get minutes(): number {
@@ -86,9 +100,9 @@ class Player {
     }
   }
 
-  /** Lets the factory settle for a minute, then records where the player stands. */
-  mark(label: string): void {
-    this.play(75);
+  /** Lets the factory settle (a minute, or longer for a long chain), then records where the player stands. */
+  mark(label: string, settleSeconds = 75): void {
+    this.play(settleSeconds);
     this.tidyContracts();
     const { economy } = this.sim.state;
     this.log.push({
@@ -224,10 +238,10 @@ class Player {
   }
 
   /**
-   * The whole robot chain on a 24 × 24 floor, built the way a first-timer would: one supply
-   * line per ingredient, nothing shared, so no belt ever has to cross another.
+   * The whole robot chain built without bridges: one supply line per ingredient, nothing
+   * shared, so no belt ever has to cross another. It needs a 24 × 24 floor.
    */
-  robotFactory(): void {
+  robotFactoryWithoutBridges(): void {
     // Motors: rows 0–4, leaving through (12, 1).
     this.twoLineModule(
       0,
@@ -249,6 +263,97 @@ class Player {
     for (let y = 15; y >= 8; y--) steelRun.push([18, y]);
     this.belts(steelRun, 0);
     this.machine('seller', 22, 7);
+  }
+
+  /**
+   * The same robot output from shared supply lines, which only works because belts can cross.
+   * Three plate lines feed one bus; splitters hand plates to two steel furnaces, the gear
+   * assembler and the circuit assembler; one wire line is split between circuits and motors.
+   * Five bridges carry one line over another. It fits in 20 columns by 13 rows.
+   */
+  robotFactory(): void {
+    // Iron: three plate lines emptying into a bus that runs down column 5, then east along row 6.
+    for (const y of [0, 2, 4]) {
+      this.machine('miner', 0, y);
+      this.belts([[2, y]], 0);
+      this.machine('furnace', 3, y);
+    }
+    this.belts([[5, 0], [5, 1], [5, 2], [5, 3], [5, 4], [5, 5], [5, 6]], 0);
+
+    // First splitter: steel for computers above the bus, steel for the robots below it.
+    this.machine('splitter', 6, 6);
+    this.machine('furnace', 6, 4, 'smelt_steel', 3);
+    this.machine('furnace', 5, 7, 'smelt_steel', 1);
+    // The bus crosses the wire coming up column 8, then reaches the second splitter:
+    // plates for circuits above, plates for gears below.
+    this.belts([[7, 6]], 0);
+    this.machine('bridge', 8, 6);
+    this.machine('splitter', 9, 6);
+    this.machine('assembler', 8, 4, 'craft_circuit', 3);
+    this.machine('assembler', 9, 7, 'craft_gear', 1);
+
+    // Computers: steel and circuits both head north into an assembler at the top.
+    this.belts([[6, 3], [7, 3]], 3);
+    this.belts([[8, 3]], 3);
+    this.machine('assembler', 7, 1, 'craft_computer', 3);
+    const computerRun: [number, number][] = [];
+    for (let x = 7; x <= 13; x++) computerRun.push([x, 0]);
+    for (let y = 1; y <= 8; y++) computerRun.push([13, y]);
+    this.belts(computerRun, 1);
+
+    // Copper: one line of wire along row 11, split between circuits (north) and motors (east).
+    this.machine('miner', 0, 11, 'mine_copper_ore');
+    this.belts([[2, 11]], 0);
+    this.machine('furnace', 3, 11, 'smelt_copper_plate');
+    this.belts([[5, 11]], 0);
+    this.machine('assembler', 6, 11, 'draw_copper_wire');
+    this.machine('splitter', 8, 11);
+    this.belts([[8, 10]], 3);
+    this.machine('bridge', 8, 9);
+    this.belts([[8, 8], [8, 7]], 3);
+    this.machine('bridge', 9, 11);
+
+    // Steel for the robots runs east along row 9, crossing the wire, the gears and the computers.
+    this.belts([[6, 9], [7, 9]], 0);
+    this.belts([[9, 9]], 0);
+    this.machine('bridge', 10, 9);
+    this.belts([[11, 9], [12, 9]], 0);
+    this.machine('bridge', 13, 9);
+    this.belts([[13, 10]], 0);
+
+    // Gears drop through the steel line, double back and cross the wire into the motor assembler.
+    this.belts([[10, 10], [9, 10]], 1);
+    this.belts([[9, 12]], 0);
+    this.machine('assembler', 10, 11, 'craft_motor');
+    this.belts([[12, 11], [13, 11]], 0);
+
+    // Steel, computers and motors arrive at the three hatches from top to bottom.
+    this.machine('fabricator', 14, 9);
+    this.belts([[17, 10]], 0);
+    this.machine('seller', 18, 10);
+  }
+
+  /** Machines that make things, and the smallest rectangle that holds the whole factory. */
+  footprint(): { crafters: number; bridges: number; belts: number; width: number; height: number } {
+    const { factory } = this.sim.state;
+    let maxX = 0;
+    let maxY = 0;
+    let crafters = 0;
+    let bridges = 0;
+    for (const machine of factory.machines.values()) {
+      for (const cell of factory.machineCells(machine)) {
+        maxX = Math.max(maxX, cell.x);
+        maxY = Math.max(maxY, cell.y);
+      }
+      const behavior = getMachineDef(machine.type).behavior;
+      if (behavior === 'crafter') crafters++;
+      if (behavior === 'bridge') bridges++;
+    }
+    for (const conveyor of factory.conveyors.values()) {
+      maxX = Math.max(maxX, conveyor.gridX);
+      maxY = Math.max(maxY, conveyor.gridY);
+    }
+    return { crafters, bridges, belts: factory.conveyors.size, width: maxX + 1, height: maxY + 1 };
   }
 
   turbines(cells: [number, number][]): void {
@@ -318,12 +423,16 @@ describe('a full playthrough', () => {
     player.mark('computers');
 
     // --- Robots.
+    // Splitters and bridges let the whole chain share its supply lines and fit in 13 rows,
+    // which leaves room on the same floor for a computer module as well.
+    player.research('logistics');
     player.research('robotics');
     player.clear();
     player.robotFactory();
-    player.motorModule(18);
-    player.turbines([[20, 12], [22, 12], [20, 14], [22, 14]]);
-    player.mark('robots');
+    player.computerModule(14);
+    player.turbines([[20, 0], [22, 0], [20, 2], [22, 2]]);
+    // The robot chain is long; give it time to fill before measuring.
+    player.mark('robots', 240);
 
     // Run it for a while to confirm it really is a steady robot line.
     player.play(600);
@@ -340,15 +449,9 @@ describe('a full playthrough', () => {
     expect(sim.power.ratio).toBe(1);
     const fabricator = [...sim.state.factory.machines.values()].find((m) => m.type === 'fabricator')!;
     expect(sim.metrics.shares(fabricator.id).working).toBeGreaterThan(0.9);
-    // The one machine short of supply is the spare motor module's gear assembler, which could use
-    // 40 plates a minute from a furnace that makes 30. The advice names exactly that, and is not
-    // thrown off by the backed-up furnaces elsewhere on the floor.
-    const starved = analyzeBottlenecks(sim.state, sim.metrics).filter((f) => f.kind === 'starved');
-    expect(starved.length).toBeGreaterThan(0);
-    for (const finding of starved) {
-      expect(finding.problem).toContain('waits for Iron Plate');
-      expect(finding.fix).toBe('One more Furnace making Iron Plate would keep it fed.');
-    }
+    // Several machines in the chain are faster than the Fabricator needs and spend time idle,
+    // but nothing downstream could use more, so none of them is reported as a bottleneck.
+    expect(analyzeBottlenecks(sim.state, sim.metrics).filter((f) => f.kind === 'starved')).toEqual([]);
   });
 
   it('is paced so that no stage is over in a moment and none is a long wait', () => {
@@ -384,5 +487,58 @@ describe('a full playthrough', () => {
     const stars = starsForEarnings(sim.state.economy.totalEarned);
     expect(stars).toBeGreaterThanOrEqual(1);
     expect(stars).toBeLessThanOrEqual(5);
+  });
+});
+
+describe('the robot factory, with and without bridges', () => {
+  /** Builds a layout in a sandbox, runs it until it is steady, and reports how it does. */
+  function measure(size: number, build: (player: Player) => void) {
+    const player = new Player(size);
+    build(player);
+    player.play(900);
+    const { sim } = player;
+    const fabricator = [...sim.state.factory.machines.values()].find((m) => m.type === 'fabricator')!;
+    return {
+      ...player.footprint(),
+      robotsPerMinute: sim.metrics.rate('sold', 'robot'),
+      fabricatorBusy: sim.metrics.shares(fabricator.id).working,
+      power: sim.power.demand,
+      sim,
+    };
+  }
+
+  const without = measure(24, (player) => player.robotFactoryWithoutBridges());
+  const withBridges = measure(20, (player) => player.robotFactory());
+
+  it('makes robots just as fast', () => {
+    console.table({
+      'without bridges': { ...without, sim: undefined },
+      'with bridges': { ...withBridges, sim: undefined },
+    });
+    // The Fabricator makes one robot every 8 seconds flat out: 7.5 a minute.
+    expect(without.robotsPerMinute).toBeGreaterThan(7);
+    expect(withBridges.robotsPerMinute).toBeGreaterThan(7);
+    expect(withBridges.fabricatorBusy).toBeGreaterThan(0.95);
+  });
+
+  it('is much smaller, with fewer machines', () => {
+    expect(withBridges.bridges).toBe(5);
+    expect(without.bridges).toBe(0);
+    // Sixteen crafting machines instead of twenty-one.
+    expect(withBridges.crafters).toBe(16);
+    expect(without.crafters).toBe(21);
+    // It fits a 20×20 floor; without bridges it needs 24×24.
+    expect(withBridges.width).toBeLessThanOrEqual(20);
+    expect(withBridges.height).toBeLessThanOrEqual(13);
+    expect(without.width).toBeGreaterThan(20);
+    expect(withBridges.width * withBridges.height).toBeLessThan(without.width * without.height * 0.7);
+    expect(withBridges.power).toBeLessThan(without.power);
+  });
+
+  it('leaves no machine short of supply', () => {
+    // Shared lines are sized to what the Fabricator uses, so nothing is starved; the only
+    // findings are suppliers that could make more than is being taken.
+    const findings = analyzeBottlenecks(withBridges.sim.state, withBridges.sim.metrics);
+    expect(findings.filter((f) => f.kind === 'starved')).toEqual([]);
   });
 });
