@@ -153,6 +153,9 @@ export class Simulation {
 
   // ----------------------------------------------------------- contracts
 
+  /** What the factory currently sells per minute, so new orders are sized to it. */
+  private readonly salesRate = (resourceId: string): number => this.state.contracts.bestRate[resourceId] ?? 0;
+
   /** Credits a sale to every "deliver" contract for that resource. */
   private advanceContracts(resourceId: string): void {
     for (const contract of [...this.state.contracts.active]) {
@@ -164,6 +167,12 @@ export class Simulation {
 
   /** "Rate" contracts are met once a full minute's sales reach the target. */
   private checkRateContracts(): void {
+    // Keep the record of the best minute so far for each resource being sold.
+    const { bestRate } = this.state.contracts;
+    for (const resourceId of Object.keys(this.state.stats.sold)) {
+      const lastMinute = this.metrics.windowTotal('sold', resourceId);
+      if (lastMinute > (bestRate[resourceId] ?? 0)) bestRate[resourceId] = lastMinute;
+    }
     for (const contract of [...this.state.contracts.active]) {
       if (contract.kind !== 'rate') continue;
       if (this.metrics.windowTotal('sold', contract.resourceId) >= contract.target) this.completeContract(contract);
@@ -176,7 +185,7 @@ export class Simulation {
     contracts.completed++;
     economy.award(contract.reward);
     this.events.emit('contractCompleted', contract);
-    fillContracts(contracts, research);
+    fillContracts(contracts, research, this.salesRate);
   }
 
   /**
@@ -199,7 +208,7 @@ export class Simulation {
     const { contracts, research } = this.state;
     if (!contracts.active.some((c) => c.id === id)) return false;
     contracts.active = contracts.active.filter((c) => c.id !== id);
-    fillContracts(contracts, research);
+    fillContracts(contracts, research, this.salesRate);
     return true;
   }
 

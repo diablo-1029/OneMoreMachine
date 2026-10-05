@@ -34,7 +34,10 @@ function hasInputs(machine: MachineState, recipe: Recipe): boolean {
 
 function hasOutputRoom(machine: MachineState, recipe: Recipe): boolean {
   const produced = recipe.outputs.reduce((sum, o) => sum + o.amount, 0);
-  return inventoryTotal(machine.outputInventory) + produced <= getMachineDef(machine.type).outputCapacity;
+  // Room for two batches whatever the batch size, so a recipe that makes several items at once
+  // can start its next craft while the last one is still being carried away.
+  const capacity = Math.max(getMachineDef(machine.type).outputCapacity, produced * 2);
+  return inventoryTotal(machine.outputInventory) + produced <= capacity;
 }
 
 /** Whether a machine would take one more unit of `resourceId` right now. */

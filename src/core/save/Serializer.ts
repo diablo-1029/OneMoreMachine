@@ -58,6 +58,7 @@ export function serializeGame(state: GameState, settings: GameSettings): SaveDat
       active: state.contracts.active.map((contract) => ({ ...contract })),
       completed: state.contracts.completed,
       nextId: state.contracts.nextId,
+      bestRate: { ...state.contracts.bestRate },
     },
     settings: { ...settings, cosmetics: { ...settings.cosmetics } },
   };
@@ -149,6 +150,8 @@ function parseContracts(raw: unknown): ContractState {
     completed: Math.max(0, integer(raw.completed ?? 0, 'Invalid contract count')),
     // Never reuse an id: the id decides what a generated contract asks for.
     nextId: Math.max(integer(raw.nextId ?? 1, 'Invalid contract counter'), maxId + 1, 1),
+    // Added after contracts first shipped; older saves simply start the record afresh.
+    bestRate: counts(raw.bestRate ?? {}, 'Invalid sales record'),
   };
 }
 

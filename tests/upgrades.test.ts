@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { buildCost, upgradeCost } from '../src/core/economy/Pricing';
 import { nominalRatePerMinute } from '../src/core/factory/MachineSystem';
 import { TICK_RATE } from '../src/core/game/Constants';
 import { allAchievementIds } from '../src/core/achievements/Achievements';
@@ -35,20 +36,25 @@ describe('upgrading a machine', () => {
     const furnace = machine(sim, 'furnace', 0, 0);
     const before = sim.state.economy.money;
 
-    expect(sim.upgradeOffer(furnace)).toMatchObject({ cost: 120, needsResearch: null });
+    const toMk2 = upgradeCost('furnace', 2);
+    const toMk3 = upgradeCost('furnace', 3);
+    // Upgrades cost far more than the machine itself: they buy space, not cheap output.
+    expect(toMk2).toBeGreaterThan(buildCost('furnace') * 5);
+    expect(toMk3).toBeGreaterThan(toMk2);
+    expect(sim.upgradeOffer(furnace)).toMatchObject({ cost: toMk2, needsResearch: null });
     expect(sim.upgradeMachine(furnace.id).ok).toBe(true);
     expect(furnace.level).toBe(2);
-    expect(sim.state.economy.money).toBe(before - 120);
+    expect(sim.state.economy.money).toBe(before - toMk2);
     expect(nominalRatePerMinute(furnace)?.perMinute).toBe(45);
 
-    expect(sim.upgradeOffer(furnace)?.cost).toBe(240);
+    expect(sim.upgradeOffer(furnace)?.cost).toBe(toMk3);
     expect(sim.upgradeMachine(furnace.id).ok).toBe(true);
     expect(furnace.level).toBe(3);
     expect(nominalRatePerMinute(furnace)?.perMinute).toBe(60);
 
     expect(sim.upgradeOffer(furnace)).toBeNull();
     expect(sim.upgradeMachine(furnace.id)).toEqual({ ok: false, reason: 'max_level' });
-    expect(sim.state.economy.money).toBe(before - 360);
+    expect(sim.state.economy.money).toBe(before - toMk2 - toMk3);
   });
 
   it('really produces faster', () => {
@@ -83,7 +89,8 @@ describe('upgrading a machine', () => {
   });
 
   it('is refused when unaffordable or not a crafting machine', () => {
-    const sim = newSim(allResearchIds(), 400);
+    // Enough for the three machines and one upgrade, with a little left over.
+    const sim = newSim(allResearchIds(), 80 + 50 + 30 + upgradeCost('assembler', 2) + 20);
     const assembler = machine(sim, 'assembler', 0, 0);
     const seller = machine(sim, 'seller', 3, 0);
     const splitter = machine(sim, 'splitter', 6, 0);
@@ -93,7 +100,7 @@ describe('upgrading a machine', () => {
     expect(sim.upgradeMachine(seller.id)).toEqual({ ok: false, reason: 'not_upgradable' });
     expect(sim.upgradeMachine(splitter.id)).toEqual({ ok: false, reason: 'not_upgradable' });
     expect(sim.upgradeOffer(seller)).toBeNull();
-    expect(sim.state.economy.money).toBe(money - 160);
+    expect(sim.state.economy.money).toBe(money - upgradeCost('assembler', 2));
   });
 
   it('refunds the upgrades along with the machine', () => {
@@ -102,7 +109,7 @@ describe('upgrading a machine', () => {
     const furnace = machine(sim, 'furnace', 0, 0);
     sim.upgradeMachine(furnace.id);
     sim.upgradeMachine(furnace.id);
-    expect(sim.state.economy.money).toBe(before - 60 - 120 - 240);
+    expect(sim.state.economy.money).toBe(before - 60 - upgradeCost('furnace', 2) - upgradeCost('furnace', 3));
     sim.removeAt(0, 0);
     expect(sim.state.economy.money).toBe(before);
   });

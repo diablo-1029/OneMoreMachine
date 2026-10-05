@@ -51,8 +51,8 @@ export class OfflineReportPanel {
       el('p', {
         class: 'panel-description',
         text: report.capped
-          ? `You were away for ${formatDuration(report.awaySeconds)}. The factory kept going for the first ${formatDuration(report.countedSeconds)}.`
-          : `You were away for ${formatDuration(report.awaySeconds)}, and the factory kept going.`,
+          ? `You were away for ${formatDuration(report.awaySeconds)}. The factory kept going at half pace for the first ${formatDuration(report.countedSeconds)}.`
+          : `You were away for ${formatDuration(report.awaySeconds)}, and the factory kept going at half pace.`,
       }),
       el('div', { class: 'offline-earned' }, [
         el('span', { class: 'coin' }),

@@ -69,7 +69,7 @@ describe('research in the simulation', () => {
     sim.state.economy.money = 1000;
     sim.research('logistics');
     expect(sim.research('logistics')).toEqual({ ok: false, reason: 'already_researched' });
-    expect(sim.state.economy.money).toBe(800);
+    expect(sim.state.economy.money).toBe(1000 - node('logistics').cost);
     expect(sim.state.research).toEqual(['logistics']);
   });
 

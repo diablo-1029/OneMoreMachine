@@ -184,7 +184,7 @@ describe('contracts and saves', () => {
     v3.version = 3;
     delete v3.contracts;
     const restored = restoreGame(v3);
-    expect(restored.contracts).toEqual({ active: [], completed: 0, nextId: 1 });
+    expect(restored.contracts).toEqual({ active: [], completed: 0, nextId: 1, bestRate: {} });
     expect(new Simulation(restored).state.contracts.active.length).toBe(CONTRACT_BALANCE.slots);
   });
 

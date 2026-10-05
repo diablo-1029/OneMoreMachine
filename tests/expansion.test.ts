@@ -48,7 +48,7 @@ describe('expansion steps', () => {
 
 describe('expanding the factory', () => {
   it('costs money and grows the floor', () => {
-    const sim = newSim(2500);
+    const sim = newSim(EXPANSION_STEPS[0].cost + 500);
     const result = sim.expandFactory();
     expect(result.ok && result.value.size).toBe(16);
     expect(sim.state.economy.money).toBe(500);

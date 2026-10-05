@@ -5,6 +5,8 @@ import type { Simulation } from './Simulation';
 export const OFFLINE = {
   /** Shorter absences are simply ignored. */
   minSeconds: 60,
+  /** Share of normal output earned while away; being present is worth twice as much. */
+  efficiency: 0.5,
   /** Time away beyond this is not counted. */
   capSeconds: 8 * 60 * 60,
   /** How much of the absence is played out tick by tick before the rest is extrapolated. */
@@ -16,7 +18,7 @@ export const OFFLINE = {
 export interface OfflineReport {
   /** How long the player was actually away. */
   awaySeconds: number;
-  /** How much of that was counted (the absence, up to the cap). */
+  /** How much of that was counted (the absence, up to the cap), before the reduced pace is applied. */
   countedSeconds: number;
   capped: boolean;
   /** Money gained: sales plus any contract bonuses. */
@@ -38,7 +40,9 @@ export interface OfflineReport {
 export function applyOfflineProgress(sim: Simulation, awaySeconds: number): OfflineReport | null {
   if (!(awaySeconds >= OFFLINE.minSeconds)) return null;
   const { state } = sim;
-  const counted = Math.min(awaySeconds, OFFLINE.capSeconds);
+  const span = Math.min(awaySeconds, OFFLINE.capSeconds);
+  // An unattended factory runs at reduced pace, which is the same as running for less time.
+  const counted = span * OFFLINE.efficiency;
   const simulated = Math.min(counted, OFFLINE.simulateSeconds);
   const measured = Math.min(simulated, OFFLINE.measureSeconds);
 
@@ -76,7 +80,7 @@ export function applyOfflineProgress(sim: Simulation, awaySeconds: number): Offl
   }
   return {
     awaySeconds,
-    countedSeconds: counted,
+    countedSeconds: span,
     capped: awaySeconds > OFFLINE.capSeconds,
     earned: state.economy.totalEarned - earnedBefore,
     sold,

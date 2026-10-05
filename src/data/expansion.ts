@@ -6,10 +6,10 @@ export interface ExpansionStep {
 
 /** Floor sizes that can be bought, in order, after the starting 12 × 12. */
 export const EXPANSION_STEPS: ExpansionStep[] = [
-  { size: 16, cost: 2000 },
-  { size: 20, cost: 8000 },
-  { size: 24, cost: 25000 },
-  { size: 32, cost: 80000 },
+  { size: 16, cost: 2500 },
+  { size: 20, cost: 12000 },
+  { size: 24, cost: 40000 },
+  { size: 32, cost: 250000 },
 ];
 
 /** The largest floor the game supports; scenery and render buffers are sized for it. */

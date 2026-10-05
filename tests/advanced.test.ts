@@ -106,7 +106,7 @@ describe('fabricator', () => {
     expect(sim.state.stats.sold['robot']).toBeGreaterThanOrEqual(20);
     expect(sim.state.stats.sold['robot']).toBeLessThanOrEqual(22);
     expect(sim.metrics.shares(fabricator.id).working).toBeGreaterThan(0.95);
-    expect(sim.state.economy.totalEarned).toBe(sim.state.stats.sold['robot'] * 700);
+    expect(sim.state.economy.totalEarned).toBe(sim.state.stats.sold['robot'] * getResource('robot').baseValue);
   });
 
   it('stalls, and says why, when one ingredient is missing', () => {

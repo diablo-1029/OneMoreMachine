@@ -1,6 +1,7 @@
 import { getEnvironment } from '../../data/environments';
 import { RECIPES } from '../../data/recipes';
 import { getResource } from '../../data/resources';
+import { isFedAt } from '../factory/ConveyorSystem';
 import type { FactoryState } from '../factory/FactoryState';
 import { getMachineDef, worldPorts } from '../factory/MachineRegistry';
 import type { MachineState } from '../factory/MachineState';
@@ -11,6 +12,7 @@ import type { Recipe } from '../recipes/Recipe';
 import { computePower } from '../power/Power';
 import { getRecipe, recipesFor } from '../recipes/RecipeRegistry';
 import { unlockedMachines } from '../research/Research';
+import { downstreamMachines, upstreamMachines } from './Connections';
 import type { FactoryMetrics } from './FactoryMetrics';
 
 export interface BottleneckFinding {
@@ -87,6 +89,8 @@ function averageShare(
  */
 function jammedAtHatch(factory: FactoryState, machine: MachineState): string | null {
   const ports = worldPorts(getMachineDef(machine.type), machine.gridX, machine.gridY, machine.rotation);
+  let connected = 0;
+  let jammed: string | null = null;
   for (const port of ports) {
     if (port.type !== 'input') continue;
     const belt = factory.conveyorAt(port.outerX, port.outerY);
@@ -98,9 +102,21 @@ function jammedAtHatch(factory: FactoryState, machine: MachineState): string | n
         : router && router.transit[0]?.to === oppositeDir(port.side)
           ? router.transit[0]
           : undefined;
-    if (front && front.progress >= 1 - 1e-6 && !machineAccepts(machine, front.resourceId)) return front.resourceId;
+    if ((belt && belt.direction === oppositeDir(port.side)) || router) connected++;
+    else continue;
+    // An item the machine has enough of, waiting at a hatch, is normal on a belt of its own.
+    // It is only a jam when every way in is plugged like that, leaving the missing
+    // ingredient no route.
+    if (front && front.progress >= 1 - 1e-6 && !machineAccepts(machine, front.resourceId)) jammed ??= front.resourceId;
+    else return null;
   }
-  return null;
+  return connected > 0 ? jammed : null;
+}
+
+/** True if any belt or machine output leads into one of the machine's input hatches. */
+function hasFeeder(factory: FactoryState, machine: MachineState): boolean {
+  const ports = worldPorts(getMachineDef(machine.type), machine.gridX, machine.gridY, machine.rotation);
+  return ports.some((port) => port.type === 'input' && isFedAt(factory, port.x, port.y, oppositeDir(port.side)));
 }
 
 /**
@@ -135,10 +151,20 @@ export function analyzeBottlenecks(state: GameState, metrics: FactoryMetrics): B
       const shortfall = needPerMinute * shares.waiting;
       const producers = recipesWith(input.resourceId, 'outputs');
       const producer = producers[0];
-      const upstreamBlocked = averageShare(machines, metrics, producers, 'blocked');
-      const upstreamStarved = averageShare(machines, metrics, producers, 'waiting');
+      // Judge the supply by the machines actually connected to this one, not by every machine
+      // of that kind in the factory: another module's troubles say nothing about this line.
+      const suppliers = upstreamMachines(state.factory, machine);
+      const upstreamBlocked = averageShare(suppliers, metrics, producers, 'blocked');
+      const upstreamStarved = averageShare(suppliers, metrics, producers, 'waiting');
 
-      const jammed = jammedAtHatch(state.factory, machine);
+      // Is anything that makes the missing ingredient connected at all? If it is, and every
+      // hatch is plugged by something else, the ingredient is stuck in the queue behind it.
+      const producerIds = new Set(producers.map((r) => r.id));
+      const connectedMakers = suppliers.filter((m) => m.recipeId !== null && producerIds.has(m.recipeId));
+      const jammed = connectedMakers.length > 0 ? jammedAtHatch(state.factory, machine) : null;
+      // A storage upstream may hold the ingredient without anything making it, so only call the
+      // input unconnected when nothing at all leads into the machine.
+      const unconnected = producer !== undefined && suppliers.length === 0 && !hasFeeder(state.factory, machine);
 
       let fix: string;
       let weight = 1;
@@ -146,6 +172,8 @@ export function analyzeBottlenecks(state: GameState, metrics: FactoryMetrics): B
         fix = `Its hatch is blocked by ${getResource(jammed).name} it has no room for — give each ingredient its own belt.`;
       } else if (!producer) {
         fix = `Nothing makes ${resource.name} yet.`;
+      } else if (unconnected) {
+        fix = `Nothing is connected to its input — run a belt carrying ${resource.name} to it.`;
       } else if (upstreamBlocked.count > 0 && upstreamBlocked.average >= KNOCK_ON_SHARE) {
         // Supply exists but cannot get here: a routing problem, not a capacity one.
         fix = `Your ${resource.name} is backed up at its source — the belts to this machine are the limit.`;
@@ -173,7 +201,7 @@ export function analyzeBottlenecks(state: GameState, metrics: FactoryMetrics): B
       const output = recipe.outputs[0];
       const resource = getResource(output.resourceId);
       const consumers = recipesWith(output.resourceId, 'inputs');
-      const downstreamBlocked = averageShare(machines, metrics, consumers, 'blocked');
+      const downstreamBlocked = averageShare(downstreamMachines(state.factory, machine), metrics, consumers, 'blocked');
       const surplus = craftsPerMinute * output.amount * shares.blocked;
 
       let fix: string;

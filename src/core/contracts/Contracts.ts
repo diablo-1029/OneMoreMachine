@@ -26,10 +26,16 @@ export interface ContractState {
   /** How many have been completed; later contracts ask for more and pay more. */
   completed: number;
   nextId: number;
+  /**
+   * The most of each resource the factory has ever sold in one minute. New orders are sized
+   * against this rather than against current sales, so switching machines off for a moment
+   * cannot be used to fish for an easy order.
+   */
+  bestRate: Record<string, number>;
 }
 
 export function createContractState(): ContractState {
-  return { active: [], completed: 0, nextId: 1 };
+  return { active: [], completed: 0, nextId: 1, bestRate: {} };
 }
 
 function roundTo(value: number, step: number): number {
@@ -51,7 +57,14 @@ function makeableRates(research: readonly string[]): Map<string, number> {
  * Builds the next contract. It only ever asks for things the player can already make, and is
  * fully determined by the contract id, so reloading a save cannot be used to reroll an offer.
  */
-export function generateContract(contracts: ContractState, research: readonly string[]): Contract {
+/** How many of a resource the factory currently sells per minute. */
+export type SalesRate = (resourceId: string) => number;
+
+export function generateContract(
+  contracts: ContractState,
+  research: readonly string[],
+  currentRate: SalesRate = () => 0,
+): Contract {
   const rates = makeableRates(research);
   const resources = [...rates.keys()];
   const level = Math.min(contracts.completed, B.maxLevel);
@@ -80,7 +93,10 @@ export function generateContract(contracts: ContractState, research: readonly st
   const value = getResource(pick.resourceId).baseValue;
   if (pick.kind === 'rate') {
     const machines = Math.min(B.rateBaseMachines + Math.floor(level / B.rateLevelsPerMachine), B.rateMaxMachines);
-    const target = Math.round(rates.get(pick.resourceId)! * machines);
+    // Always a real step up: never less than half as much again as the factory already sells,
+    // or an order for something already mass-produced would be met the moment it appeared.
+    const stretch = roundTo(currentRate(pick.resourceId) * B.rateGrowth, 5);
+    const target = Math.max(Math.round(rates.get(pick.resourceId)! * machines), stretch);
     return {
       id,
       kind: 'rate',
@@ -93,7 +109,9 @@ export function generateContract(contracts: ContractState, research: readonly st
 
   // Valuable goods are slower to make, so ask for fewer of them.
   const scarcity = 1.6 / Math.pow(value, 0.42);
-  const target = roundTo((B.deliverBase + B.deliverPerLevel * level) * scarcity, 5);
+  // For a factory already selling plenty, at least several minutes of its current output.
+  const sustained = roundTo(currentRate(pick.resourceId) * B.deliverMinutes, 5);
+  const target = Math.max(roundTo((B.deliverBase + B.deliverPerLevel * level) * scarcity, 5), sustained);
   return {
     id,
     kind: 'deliver',
@@ -105,10 +123,14 @@ export function generateContract(contracts: ContractState, research: readonly st
 }
 
 /** Tops the offers back up to the number of slots. Returns true if anything was added. */
-export function fillContracts(contracts: ContractState, research: readonly string[]): boolean {
+export function fillContracts(
+  contracts: ContractState,
+  research: readonly string[],
+  currentRate?: SalesRate,
+): boolean {
   let added = false;
   while (contracts.active.length < B.slots) {
-    contracts.active.push(generateContract(contracts, research));
+    contracts.active.push(generateContract(contracts, research, currentRate));
     contracts.nextId++;
     added = true;
   }

@@ -11,14 +11,18 @@ export const CONTRACT_BALANCE = {
   deliverBase: 30,
   deliverPerLevel: 12,
   /** Bonus paid per item, as a fraction of its sale value, plus a flat amount. */
-  deliverBonusRate: 0.75,
+  deliverBonusRate: 0.25,
+  /** A delivery order is never smaller than this many minutes of what the factory already sells. */
+  deliverMinutes: 5,
   deliverFlatBonus: 40,
 
   /** "Sell N per minute": N = one machine's output × (baseMachines + level / levelsPerMachine). */
   rateBaseMachines: 2,
   rateLevelsPerMachine: 3,
   rateMaxMachines: 7,
+  /** A rate order is never less than this multiple of what the factory already sells. */
+  rateGrowth: 1.5,
   /** Bonus = target rate × item value × this, plus a flat amount. */
-  rateBonusMinutes: 3,
+  rateBonusMinutes: 2,
   rateFlatBonus: 100,
 };

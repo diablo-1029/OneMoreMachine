@@ -67,7 +67,7 @@ const MIGRATIONS: Record<number, (save: RawSave) => RawSave> = {
   },
   // v4 added contracts; the first offers are generated when the game starts.
   3: (save) => {
-    save.contracts = { active: [], completed: 0, nextId: 1 };
+    save.contracts = { active: [], completed: 0, nextId: 1, bestRate: {} };
     return save;
   },
 };

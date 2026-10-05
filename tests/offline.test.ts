@@ -42,20 +42,21 @@ describe('offline progress', () => {
   it('plays a few minutes out exactly', () => {
     const away = gearLine();
     const played = gearLine();
-    const report = applyOfflineProgress(away, 200)!;
+    // Time away counts at half pace, so 400 seconds away is 200 seconds of production.
+    const report = applyOfflineProgress(away, 400)!;
     run(played, 200);
     expect(away.state.economy.money).toBe(played.state.economy.money);
     expect(away.state.stats).toEqual(played.state.stats);
-    expect(report).toMatchObject({ awaySeconds: 200, countedSeconds: 200, capped: false });
+    expect(report).toMatchObject({ awaySeconds: 400, countedSeconds: 400, capped: false });
     expect(report.sold).toEqual({ gear: played.state.stats.sold['gear'] });
     expect(report.earned).toBe(played.state.stats.sold['gear'] * 12);
   });
 
-  it('matches really playing two hours to within a couple of percent', () => {
+  it('matches really playing half the time away to within a couple of percent', () => {
     const away = gearLine();
     const played = gearLine();
     const before = away.state.economy.money;
-    const report = applyOfflineProgress(away, 2 * 60 * 60)!;
+    const report = applyOfflineProgress(away, 4 * 60 * 60)!;
     run(played, 2 * 60 * 60);
 
     const offlineGain = away.state.economy.money - before;
@@ -98,7 +99,8 @@ describe('offline progress', () => {
       { id: 9001, kind: 'deliver', resourceId: 'gear', target: 100_000, progress: 0, reward: 1 },
     ];
     const before = sim.state.economy.money;
-    const report = applyOfflineProgress(sim, 60 * 60)!;
+    // Two hours away at half pace is an hour of production: 900 gears.
+    const report = applyOfflineProgress(sim, 2 * 60 * 60)!;
 
     expect(report.contractsCompleted).toBeGreaterThanOrEqual(1);
     expect(sim.state.contracts.active.some((c) => c.id === 9000)).toBe(false);

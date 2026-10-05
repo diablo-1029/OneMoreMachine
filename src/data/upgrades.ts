@@ -19,8 +19,8 @@ export interface UpgradeLevel {
  */
 export const UPGRADE_LEVELS: UpgradeLevel[] = [
   { level: 1, name: 'Mk I', speed: 1, power: 1, costFactor: 0, requires: null },
-  { level: 2, name: 'Mk II', speed: 1.5, power: 2, costFactor: 2, requires: 'machine_tuning' },
-  { level: 3, name: 'Mk III', speed: 2, power: 3, costFactor: 4, requires: 'precision_engineering' },
+  { level: 2, name: 'Mk II', speed: 1.5, power: 2, costFactor: 10, requires: 'machine_tuning' },
+  { level: 3, name: 'Mk III', speed: 2, power: 3, costFactor: 40, requires: 'precision_engineering' },
 ];
 
 export const MAX_MACHINE_LEVEL = UPGRADE_LEVELS.length;
