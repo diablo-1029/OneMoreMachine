@@ -28,6 +28,13 @@ export const ICONS: Record<string, string> = {
       '<rect x="11.5" y="12" width="9" height="3.5" rx="1" fill="#cdd3dc"/>' +
       '<circle cx="16" cy="23" r="2.2" fill="#e0a83c"/>',
   ),
+  fabricator: svg(
+    '<rect x="4" y="21" width="24" height="7" rx="2" fill="#6b5fa8"/>' +
+      '<rect x="7" y="17" width="6" height="5" rx="1" fill="#f2b632"/>' +
+      '<path d="M10 17l5-9 8 4" stroke="#f2b632" stroke-width="2.6"/>' +
+      '<path d="M23 12v5" stroke="#cdd3dc" stroke-width="2.4"/>' +
+      '<circle cx="15" cy="8" r="2.200" fill="#3b4252"/><circle cx="23" cy="12" r="1.800" fill="#3b4252"/>',
+  ),
   seller: svg(
     '<path d="M4 13l3-7h18l3 7z" fill="#d9534f"/>' +
       '<rect x="6" y="13" width="20" height="14" rx="1.5" fill="#efe2c4"/>' +

@@ -91,6 +91,38 @@ export const RESEARCH_NODES: ResearchNode[] = [
     requires: ['wire_drawing'],
     unlocks: { machines: [], recipes: ['craft_motor'] },
   },
+  {
+    id: 'steelmaking',
+    name: 'Steelmaking',
+    description: 'Furnaces can turn two iron plates into one bar of steel.',
+    cost: 2000,
+    requires: ['gear_assembly'],
+    unlocks: { machines: [], recipes: ['smelt_steel'] },
+  },
+  {
+    id: 'electronics',
+    name: 'Electronics',
+    description: 'Assemblers can build circuits from wire and iron plate.',
+    cost: 3000,
+    requires: ['wire_drawing'],
+    unlocks: { machines: [], recipes: ['craft_circuit'] },
+  },
+  {
+    id: 'computing',
+    name: 'Computing',
+    description: 'Combine circuits and steel into computers.',
+    cost: 8000,
+    requires: ['electronics', 'steelmaking'],
+    unlocks: { machines: [], recipes: ['craft_computer'] },
+  },
+  {
+    id: 'robotics',
+    name: 'Robotics',
+    description: 'The Fabricator builds robots from a motor, a computer and steel.',
+    cost: 20000,
+    requires: ['computing', 'electric_motors'],
+    unlocks: { machines: ['fabricator'], recipes: ['build_robot'] },
+  },
 ];
 
 /**

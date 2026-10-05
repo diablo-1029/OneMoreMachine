@@ -255,10 +255,10 @@
   background: var(--panel);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
-  /* On narrow windows the bar scrolls sideways instead of running off both edges. */
+  /* On narrow windows the tools wrap onto a second row, so none are ever out of reach. */
   max-width: calc(100vw - 16px);
-  overflow-x: auto;
-  scrollbar-width: none;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .toolbar-divider {

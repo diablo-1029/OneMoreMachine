@@ -51,6 +51,24 @@ export const MACHINE_DEFINITIONS: MachineDefinition[] = [
     outputCapacity: 2,
   },
   {
+    type: 'fabricator',
+    name: 'Fabricator',
+    description: 'Builds the most complex products from three ingredients at once.',
+    powerUse: BALANCE.power.use.fabricator,
+    cost: BALANCE.costs.fabricator,
+    width: 3,
+    height: 3,
+    behavior: 'crafter',
+    // One hatch per ingredient down the west side; finished goods leave from the middle of the east.
+    ports: [
+      { localX: 0, localY: 0, side: 2, type: 'input' },
+      { localX: 0, localY: 1, side: 2, type: 'input' },
+      { localX: 0, localY: 2, side: 2, type: 'input' },
+      { localX: 2, localY: 1, side: 0, type: 'output' },
+    ],
+    outputCapacity: 2,
+  },
+  {
     type: 'seller',
     name: 'Seller',
     description: 'Sells anything delivered to it.',
@@ -138,6 +156,7 @@ export const BUILD_ORDER = [
   'conveyor',
   'furnace',
   'assembler',
+  'fabricator',
   'seller',
   'splitter',
   'merger',

@@ -1,5 +1,6 @@
 import type { MachineType } from '../core/factory/MachineTypes';
 import { AssemblerVisual } from './AssemblerVisual';
+import { FabricatorVisual } from './FabricatorVisual';
 import { FurnaceVisual } from './FurnaceVisual';
 import type { MachineVisual } from './MachineVisual';
 import { MergerVisual } from './MergerVisual';
@@ -14,6 +15,7 @@ const VISUALS: Record<string, () => MachineVisual> = {
   miner: () => new MinerVisual(),
   furnace: () => new FurnaceVisual(),
   assembler: () => new AssemblerVisual(),
+  fabricator: () => new FabricatorVisual(),
   seller: () => new SellerVisual(),
   splitter: () => new SplitterVisual(),
   merger: () => new MergerVisual(),

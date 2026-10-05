@@ -17,6 +17,10 @@ export const RESOURCE_DEFINITIONS: ResourceDefinition[] = [
   { id: 'copper_plate', name: 'Copper Plate', icon: 'copper_plate', color: '#d98452', baseValue: 4, stackLimit: 50 },
   { id: 'copper_wire', name: 'Copper Wire', icon: 'wire', color: '#f0a060', baseValue: 3, stackLimit: 50 },
   { id: 'motor', name: 'Motor', icon: 'motor', color: '#4aa3b5', baseValue: 50, stackLimit: 50 },
+  { id: 'steel', name: 'Steel', icon: 'steel', color: '#5d6f8c', baseValue: 14, stackLimit: 50 },
+  { id: 'circuit', name: 'Circuit', icon: 'circuit', color: '#3fa66a', baseValue: 30, stackLimit: 50 },
+  { id: 'computer', name: 'Computer', icon: 'computer', color: '#d9cdb4', baseValue: 180, stackLimit: 50 },
+  { id: 'robot', name: 'Robot', icon: 'robot', color: '#e2733d', baseValue: 700, stackLimit: 50 },
 ];
 
 const byId = new Map(RESOURCE_DEFINITIONS.map((r) => [r.id, r]));

@@ -54,4 +54,43 @@ export const RECIPES: Recipe[] = [
     outputs: [{ resourceId: 'motor', amount: 1 }],
     duration: 4,
   },
+  {
+    id: 'smelt_steel',
+    machineType: 'furnace',
+    inputs: [{ resourceId: 'iron_plate', amount: 2 }],
+    outputs: [{ resourceId: 'steel', amount: 1 }],
+    duration: 4,
+  },
+  {
+    id: 'craft_circuit',
+    machineType: 'assembler',
+    inputs: [
+      { resourceId: 'copper_wire', amount: 3 },
+      { resourceId: 'iron_plate', amount: 1 },
+    ],
+    outputs: [{ resourceId: 'circuit', amount: 1 }],
+    duration: 3,
+  },
+  {
+    id: 'craft_computer',
+    machineType: 'assembler',
+    inputs: [
+      { resourceId: 'circuit', amount: 2 },
+      { resourceId: 'steel', amount: 1 },
+    ],
+    outputs: [{ resourceId: 'computer', amount: 1 }],
+    duration: 6,
+  },
+  {
+    // The top of the tree: three ingredients, each the end of its own chain.
+    id: 'build_robot',
+    machineType: 'fabricator',
+    inputs: [
+      { resourceId: 'motor', amount: 1 },
+      { resourceId: 'computer', amount: 1 },
+      { resourceId: 'steel', amount: 2 },
+    ],
+    outputs: [{ resourceId: 'robot', amount: 1 }],
+    duration: 8,
+  },
 ];

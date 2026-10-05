@@ -91,6 +91,55 @@ export function createItemVisuals(): Record<string, ItemVisualSpec> {
       spin: 0,
       alignToTravel: true,
     },
+    steel: {
+      // An I-beam lying along the direction of travel.
+      geometry: merge([
+        paint(new THREE.BoxGeometry(0.34, 0.035, 0.2).translate(0, -0.06, 0), 0x5d6f8c),
+        paint(new THREE.BoxGeometry(0.34, 0.1, 0.05), 0x4c5c76),
+        paint(new THREE.BoxGeometry(0.34, 0.035, 0.2).translate(0, 0.06, 0), 0x6f83a2),
+      ]),
+      lift: 0.08,
+      spin: 0,
+      alignToTravel: true,
+    },
+    circuit: {
+      // A green board with a chip and two smaller parts.
+      geometry: merge([
+        paint(new THREE.BoxGeometry(0.3, 0.03, 0.24), 0x3fa66a),
+        paint(new THREE.BoxGeometry(0.12, 0.04, 0.12).translate(-0.03, 0.035, 0), 0x2e3440),
+        paint(new THREE.BoxGeometry(0.05, 0.035, 0.08).translate(0.1, 0.03, 0.05), 0xe0a83c),
+        paint(new THREE.BoxGeometry(0.05, 0.035, 0.05).translate(0.1, 0.03, -0.07), 0xcdd3dc),
+      ]),
+      lift: 0.02,
+      spin: 0,
+      alignToTravel: true,
+    },
+    computer: {
+      // A beige tower with a dark screen on its leading face.
+      geometry: merge([
+        paint(new THREE.BoxGeometry(0.26, 0.26, 0.24), 0xd9cdb4),
+        paint(new THREE.BoxGeometry(0.02, 0.15, 0.17).translate(0.135, 0.02, 0), 0x25303c),
+        paint(new THREE.BoxGeometry(0.02, 0.02, 0.06).translate(0.135, -0.09, 0.06), 0x6ad17d),
+      ]),
+      lift: 0.13,
+      spin: 0,
+      alignToTravel: true,
+    },
+    robot: {
+      // A squat little robot: body, head with an eye strip, two arms and an antenna.
+      geometry: merge([
+        paint(new THREE.BoxGeometry(0.2, 0.2, 0.22).translate(0, 0.1, 0), 0xe2733d),
+        paint(new THREE.BoxGeometry(0.16, 0.13, 0.17).translate(0, 0.27, 0), 0xf0ead8),
+        paint(new THREE.BoxGeometry(0.02, 0.04, 0.12).translate(0.085, 0.28, 0), 0x25303c),
+        paint(new THREE.BoxGeometry(0.06, 0.16, 0.05).translate(0, 0.11, 0.14), 0x8a8f99),
+        paint(new THREE.BoxGeometry(0.06, 0.16, 0.05).translate(0, 0.11, -0.14), 0x8a8f99),
+        paint(new THREE.CylinderGeometry(0.012, 0.012, 0.09, 5).translate(0, 0.38, 0), 0x3b4252),
+        paint(new THREE.SphereGeometry(0.025, 6, 5).translate(0, 0.43, 0), 0xf87171),
+      ]),
+      lift: 0.0,
+      spin: 0,
+      alignToTravel: true,
+    },
   };
 }
 

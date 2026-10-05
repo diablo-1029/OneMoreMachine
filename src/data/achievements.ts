@@ -84,6 +84,22 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     progress: (sim) => ({ current: sold(sim, 'motor'), target: 50 }),
   },
   {
+    id: 'computers_25',
+    kind: 'achievement',
+    name: 'Thinking Machines',
+    description: 'Sell 25 Computers.',
+    reward: 5000,
+    progress: (sim) => ({ current: sold(sim, 'computer'), target: 25 }),
+  },
+  {
+    id: 'robots_10',
+    kind: 'achievement',
+    name: 'Machines Making Machines',
+    description: 'Sell 10 Robots.',
+    reward: 20_000,
+    progress: (sim) => ({ current: sold(sim, 'robot'), target: 10 }),
+  },
+  {
     id: 'machines_10',
     kind: 'achievement',
     name: 'Getting Crowded',
