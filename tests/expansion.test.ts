@@ -11,7 +11,10 @@ function newSim(money: number): Simulation {
   const state = createNewGame();
   state.research = allResearchIds();
   state.economy.money = money;
-  return new Simulation(state);
+  const sim = new Simulation(state);
+  // These tests check exact money, so contract bonuses are kept out of the way.
+  state.contracts.active = [];
+  return sim;
 }
 
 function run(sim: Simulation, seconds: number): void {

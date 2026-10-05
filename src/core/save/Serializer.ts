@@ -1,4 +1,5 @@
 import { isResource } from '../../data/resources';
+import type { Contract, ContractState } from '../contracts/Contracts';
 import { Economy } from '../economy/Economy';
 import { FactoryState } from '../factory/FactoryState';
 import type { ItemState } from '../factory/ItemState';
@@ -45,6 +46,11 @@ export function serializeGame(state: GameState, settings: GameSettings): SaveDat
     simTime: state.simTime,
     tutorialStep: state.tutorialStep,
     research: [...state.research],
+    contracts: {
+      active: state.contracts.active.map((contract) => ({ ...contract })),
+      completed: state.contracts.completed,
+      nextId: state.contracts.nextId,
+    },
     settings: { ...settings },
   };
 }
@@ -104,6 +110,38 @@ function parseItem(entry: unknown): ItemState {
   };
   if (entry.to !== undefined) item.to = entry.to;
   return item;
+}
+
+function parseContracts(raw: unknown): ContractState {
+  must(isRecord(raw), 'Missing contracts');
+  must(Array.isArray(raw.active), 'Invalid contract list');
+  const active: Contract[] = [];
+  let maxId = 0;
+  for (const entry of raw.active as unknown[]) {
+    must(isRecord(entry), 'Invalid contract');
+    must(entry.kind === 'deliver' || entry.kind === 'rate', 'Invalid contract kind');
+    const resourceId = text(entry.resourceId, 'Invalid contract resource');
+    must(isResource(resourceId), `Unknown resource ${resourceId}`);
+    const target = integer(entry.target, 'Invalid contract target');
+    must(target > 0, 'Invalid contract target');
+    const contract: Contract = {
+      id: integer(entry.id, 'Invalid contract id'),
+      kind: entry.kind,
+      resourceId,
+      target,
+      progress: Math.min(Math.max(integer(entry.progress ?? 0, 'Invalid contract progress'), 0), target),
+      reward: Math.max(0, finite(entry.reward, 'Invalid contract reward')),
+    };
+    must(!active.some((other) => other.id === contract.id), 'Duplicate contract id');
+    active.push(contract);
+    maxId = Math.max(maxId, contract.id);
+  }
+  return {
+    active,
+    completed: Math.max(0, integer(raw.completed ?? 0, 'Invalid contract count')),
+    // Never reuse an id: the id decides what a generated contract asks for.
+    nextId: Math.max(integer(raw.nextId ?? 1, 'Invalid contract counter'), maxId + 1, 1),
+  };
 }
 
 /** Highest numeric suffix among entity ids like "m12", so new ids never collide. */
@@ -241,6 +279,7 @@ export function restoreGame(raw: unknown): GameState {
     research: Array.isArray(save.research)
       ? [...new Set(save.research.filter((id): id is string => typeof id === 'string' && isResearchId(id)))]
       : [],
+    contracts: parseContracts(save.contracts),
   };
 }
 

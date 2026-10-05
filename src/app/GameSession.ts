@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { AudioManager, SoundId } from '../audio/AudioManager';
+import { describeContract } from '../core/contracts/Contracts';
 import { formatMoney } from '../core/economy/Currency';
 import { AUTOSAVE_INTERVAL, TICK_RATE } from '../core/game/Constants';
 import type { GameState } from '../core/game/GameState';
@@ -25,6 +26,7 @@ import type { Renderer } from '../rendering/Renderer';
 import type { SceneManager } from '../rendering/SceneManager';
 import { StatusBadgeRenderer } from '../rendering/StatusBadgeRenderer';
 import { BuildToolbar } from '../ui/BuildToolbar';
+import { ContractsPanel } from '../ui/ContractsPanel';
 import { DebugPanel } from '../ui/DebugPanel';
 import { ExpansionPanel } from '../ui/ExpansionPanel';
 import { el } from '../ui/dom';
@@ -84,6 +86,7 @@ export class GameSession {
   private readonly settingsPanel: SettingsPanel;
   private readonly researchPanel: ResearchPanel;
   private readonly expansionPanel: ExpansionPanel;
+  private readonly contractsPanel: ContractsPanel;
   private readonly notifications: NotificationSystem;
   private readonly debugRenderer: DebugRenderer | null = null;
   private readonly debugPanel: DebugPanel | null = null;
@@ -133,6 +136,7 @@ export class GameSession {
       toggleDebug: () => this.debugPanel?.toggle(),
       toggleBottleneckView: () => this.toggleBottleneckView(),
       toggleResearch: () => this.researchPanel.toggle(),
+      toggleContracts: () => this.toggleDropdown(this.contractsPanel),
     });
 
     const click = () => ctx.audio.play('click');
@@ -148,10 +152,7 @@ export class GameSession {
       },
       toggleStats: () => {
         click();
-        // Both drop-downs open in the same spot, so only one shows at a time.
-        this.expansionPanel.hide();
-        this.stats.toggle();
-        this.updateUi();
+        this.toggleDropdown(this.stats);
       },
       toggleBottleneckView: () => {
         click();
@@ -163,10 +164,18 @@ export class GameSession {
       },
       toggleExpansion: () => {
         click();
-        this.stats.hide();
-        this.expansionPanel.toggle();
-        this.updateUi();
+        this.toggleDropdown(this.expansionPanel);
       },
+      toggleContracts: () => {
+        click();
+        this.toggleDropdown(this.contractsPanel);
+      },
+    });
+    this.contractsPanel = new ContractsPanel(ctx.uiRoot, (id) => {
+      click();
+      this.sim.swapContract(id);
+      this.requestSave();
+      this.updateUi();
     });
     this.expansionPanel = new ExpansionPanel(ctx.uiRoot, () => this.expand());
     this.researchPanel = new ResearchPanel(
@@ -255,6 +264,11 @@ export class GameSession {
       this.notifications.toast(`Factory floor expanded to ${width} × ${height}`);
       this.updateUi();
     });
+    events.on('contractCompleted', (contract) => {
+      audio.play('contract');
+      this.notifications.toast(`Contract complete: ${describeContract(contract)} · +${formatMoney(contract.reward)}`);
+      this.requestSave();
+    });
     events.on('researchCompleted', (node) => {
       audio.play('research');
       this.notifications.toast(`Researched: ${node.name}`);
@@ -263,6 +277,15 @@ export class GameSession {
     });
 
     this.placement.events.on('message', (message) => this.notifications.toast(message));
+  }
+
+  /** The top-left drop-downs share one spot, so opening one closes the others. */
+  private toggleDropdown(panel: { toggle: () => void; hide: () => void }): void {
+    for (const other of [this.stats, this.expansionPanel, this.contractsPanel]) {
+      if (other !== panel) other.hide();
+    }
+    panel.toggle();
+    this.updateUi();
   }
 
   // ----------------------------------------------------------- expansion
@@ -404,6 +427,7 @@ export class GameSession {
     this.machinePanel.update();
     this.stats.update(state, this.sim.metrics);
     this.researchPanel.update();
+    this.contractsPanel.update(state, this.sim.metrics);
     this.expansionPanel.update(state, this.sim.nextExpansion());
     this.hud.setResearchAvailable(this.researchPanel.hasAffordable());
     if (this.debugPanel?.visible) {

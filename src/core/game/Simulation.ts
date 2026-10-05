@@ -1,3 +1,4 @@
+import { fillContracts, type Contract } from '../contracts/Contracts';
 import { buildCost, refundValue, sellValue } from '../economy/Pricing';
 import type { ConveyorState } from '../factory/ConveyorState';
 import {
@@ -39,6 +40,7 @@ export interface SimulationEvents {
   itemEntered: { machine: MachineState; resourceId: string };
   tutorialAdvanced: number;
   researchCompleted: ResearchNode;
+  contractCompleted: Contract;
   /** The floor grew; every grid coordinate has shifted by (dx, dy). */
   factoryExpanded: { width: number; height: number; dx: number; dy: number };
 }
@@ -67,7 +69,9 @@ export class Simulation {
   private readonly network = new ConveyorNetwork();
   private tutorialTimer = 0;
 
-  constructor(readonly state: GameState) {}
+  constructor(readonly state: GameState) {
+    fillContracts(state.contracts, state.research);
+  }
 
   // ---------------------------------------------------------------- tick
 
@@ -106,7 +110,45 @@ export class Simulation {
     if (this.tutorialTimer >= 0.5) {
       this.tutorialTimer = 0;
       this.checkTutorial();
+      this.checkRateContracts();
     }
+  }
+
+  // ----------------------------------------------------------- contracts
+
+  /** Credits a sale to every "deliver" contract for that resource. */
+  private advanceContracts(resourceId: string): void {
+    for (const contract of [...this.state.contracts.active]) {
+      if (contract.kind !== 'deliver' || contract.resourceId !== resourceId) continue;
+      contract.progress++;
+      if (contract.progress >= contract.target) this.completeContract(contract);
+    }
+  }
+
+  /** "Rate" contracts are met once a full minute's sales reach the target. */
+  private checkRateContracts(): void {
+    for (const contract of [...this.state.contracts.active]) {
+      if (contract.kind !== 'rate') continue;
+      if (this.metrics.windowTotal('sold', contract.resourceId) >= contract.target) this.completeContract(contract);
+    }
+  }
+
+  private completeContract(contract: Contract): void {
+    const { contracts, economy, research } = this.state;
+    contracts.active = contracts.active.filter((c) => c.id !== contract.id);
+    contracts.completed++;
+    economy.award(contract.reward);
+    this.events.emit('contractCompleted', contract);
+    fillContracts(contracts, research);
+  }
+
+  /** Trades a contract for a fresh one. Free, so an awkward order never blocks a slot. */
+  swapContract(id: number): boolean {
+    const { contracts, research } = this.state;
+    if (!contracts.active.some((c) => c.id === id)) return false;
+    contracts.active = contracts.active.filter((c) => c.id !== id);
+    fillContracts(contracts, research);
+    return true;
   }
 
   /** Whether a machine would take one unit through the given input port right now. */
@@ -138,6 +180,7 @@ export class Simulation {
         this.state.stats.sold[resourceId] = (this.state.stats.sold[resourceId] ?? 0) + 1;
         this.metrics.count('sold', resourceId, 1);
         this.events.emit('itemSold', { machine, resourceId, value });
+        this.advanceContracts(resourceId);
         break;
       }
       default:

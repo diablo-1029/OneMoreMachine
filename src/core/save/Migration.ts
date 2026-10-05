@@ -22,6 +22,11 @@ const MIGRATIONS: Record<number, (save: RawSave) => RawSave> = {
     save.research = [...LEGACY_RESEARCH];
     return save;
   },
+  // v4 added contracts; the first offers are generated when the game starts.
+  3: (save) => {
+    save.contracts = { active: [], completed: 0, nextId: 1 };
+    return save;
+  },
 };
 
 /** Upgrades a parsed save to the current schema version, step by step. */

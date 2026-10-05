@@ -102,6 +102,11 @@ export class FactoryMetrics {
     return this.rates[kind].get(resourceId)?.perMinute() ?? 0;
   }
 
+  /** Items counted over the last full minute, without extrapolating from a shorter span. */
+  windowTotal(kind: RateKind, resourceId: string): number {
+    return this.rates[kind].get(resourceId)?.sum() ?? 0;
+  }
+
   /** Items per minute this machine has actually been producing. */
   machineOutputRate(machineId: string): number {
     return this.machines.get(machineId)?.output.perMinute() ?? 0;

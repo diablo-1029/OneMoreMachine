@@ -11,7 +11,8 @@ export type SoundId =
   | 'assembler'
   | 'rotate'
   | 'thunk'
-  | 'research';
+  | 'research'
+  | 'contract';
 
 /** Minimum seconds between two plays of the same sound, so a busy factory never becomes a wall of noise. */
 const COOLDOWNS: Record<SoundId, number> = {
@@ -26,6 +27,7 @@ const COOLDOWNS: Record<SoundId, number> = {
   rotate: 0.03,
   thunk: 0.14,
   research: 0.3,
+  contract: 0.3,
 };
 
 /** C major pentatonic across two octaves; any combination of these sounds consonant. */
@@ -172,6 +174,12 @@ export class AudioManager {
         this.tone('triangle', 659.25, 659.25, 0.16, 0.1);
         this.tone('triangle', 880, 880, 0.16, 0.1, 0.11);
         this.tone('triangle', 1318.5, 1318.5, 0.4, 0.1, 0.22);
+        break;
+      case 'contract':
+        // A bright two-note "cha-ching".
+        this.tone('triangle', 1046.5, 1046.5, 0.12, 0.11);
+        this.tone('triangle', 1568, 1568, 0.45, 0.11, 0.1);
+        this.noise(0.05, 5000, 'highpass', 0.04);
         break;
       case 'thunk':
         this.tone('sine', 120, 70, 0.06, 0.05);

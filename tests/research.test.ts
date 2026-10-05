@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TICK_RATE } from '../src/core/game/Constants';
+import { SAVE_VERSION, TICK_RATE } from '../src/core/game/Constants';
 import { createNewGame } from '../src/core/game/GameState';
 import { Simulation } from '../src/core/game/Simulation';
 import { currentHint } from '../src/core/game/Tutorial';
@@ -106,7 +106,7 @@ describe('research and saves', () => {
     sim.research('logistics');
     sim.research('copper_mining');
     const saved = JSON.parse(JSON.stringify(serializeGame(sim.state, DEFAULT_SETTINGS)));
-    expect(saved.version).toBe(3);
+    expect(saved.version).toBe(SAVE_VERSION);
     expect(restoreGame(saved).research).toEqual(['logistics', 'copper_mining']);
   });
 

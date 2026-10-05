@@ -23,6 +23,7 @@ const CONTROLS: [string, string][] = [
   ['X', 'Delete tool'],
   ['B', 'Bottleneck view'],
   ['T', 'Research'],
+  ['C', 'Contracts'],
   ['Del', 'Remove selected'],
   ['Space', 'Pause'],
   ['Home', 'Centre view'],

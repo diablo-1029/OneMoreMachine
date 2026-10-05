@@ -1,3 +1,4 @@
+import type { ContractState } from '../contracts/Contracts';
 import type { ItemState } from '../factory/ItemState';
 import type { MachineState } from '../factory/MachineState';
 import type { Direction } from '../grid/GridPosition';
@@ -49,6 +50,7 @@ export interface SaveData {
   simTime: number;
   tutorialStep: number;
   research: string[];
+  contracts: ContractState;
   settings: GameSettings;
 }
 

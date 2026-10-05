@@ -11,6 +11,7 @@ export interface HudActions {
   toggleBottleneckView: () => void;
   openResearch: () => void;
   toggleExpansion: () => void;
+  toggleContracts: () => void;
 }
 
 /** Top bar: money, income rate, pause / speed and settings. */
@@ -63,6 +64,14 @@ export class HUD {
       attrs: { type: 'button', 'aria-label': 'Factory floor' },
     });
 
+    const contractsButton = el('button', {
+      class: 'pill icon-button',
+      title: 'Contracts (C) — bonus orders',
+      html: ICONS.contracts,
+      onClick: actions.toggleContracts,
+      attrs: { type: 'button', 'aria-label': 'Contracts' },
+    });
+
     root.append(
       el('div', { class: 'topbar' }, [
         el('div', { class: 'topbar-group' }, [
@@ -78,6 +87,7 @@ export class HUD {
             [this.income],
           ),
           this.bottleneckButton,
+          contractsButton,
           this.researchButton,
           expandButton,
         ]),

@@ -27,6 +27,12 @@ export class Economy {
     this.income.add(amount);
   }
 
+  /** A one-off payment such as a contract bonus. Counts as earnings but not as running income. */
+  award(amount: number): void {
+    this.money += amount;
+    this.totalEarned += amount;
+  }
+
   advance(dt: number): void {
     this.income.advance(dt);
   }

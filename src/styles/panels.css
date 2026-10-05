@@ -364,6 +364,86 @@ kbd {
   white-space: nowrap;
 }
 
+/* -------------------------------------------------------------- contracts */
+
+.contracts-panel {
+  position: absolute;
+  top: 66px;
+  left: 14px;
+  width: 310px;
+  max-height: calc(100vh - 190px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.contracts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.contract {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel-raised);
+}
+
+.contract-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.contract .progress {
+  max-width: none;
+  flex: none;
+}
+
+.contract-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.contract-progress {
+  flex: 1;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.contract-reward {
+  color: var(--good);
+  font-variant-numeric: tabular-nums;
+}
+
+.contract-swap {
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.contract-swap:hover {
+  background: var(--panel-hover);
+  color: var(--text);
+}
+
 /* -------------------------------------------------------------- expansion */
 
 .expansion-panel {
