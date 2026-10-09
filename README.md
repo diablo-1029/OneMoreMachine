@@ -56,12 +56,13 @@ without touching your real factory.
 | `W` `A` `S` `D` | Pan |
 | `Q` / `E` | Rotate the view |
 | `R` | Rotate the piece being placed, or the selection |
-| `1`–`9`, `0` | Build tools, in the order shown on the toolbar |
+| `1`–`9`, `0` | Build tools; each tool keeps its number |
 | `` ` `` | Next group of build tools |
 | `F` | Pick the tool for whatever is under the cursor |
 | `X` | Delete tool |
 | `Ctrl+C` / `Ctrl+V` | Copy an area / paste it |
 | `Del` | Remove the selection |
+| `Ctrl+Z` | Put back what was last removed |
 | `B` | Bottleneck view |
 | `T` `C` `G` `P` | Research, Contracts, Achievements, Blueprints |
 | `Space` | Pause |

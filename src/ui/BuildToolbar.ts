@@ -6,7 +6,7 @@ import type { GameState } from '../core/game/GameState';
 import { unlockedMachines } from '../core/research/Research';
 import { BUILD_ORDER, CONVEYOR_INFO, TOOL_GROUPS, UNGROUPED_TOOL_LIMIT } from '../data/machines';
 import type { PlacementController, Tool } from '../input/PlacementController';
-import { el, setText } from './dom';
+import { el } from './dom';
 import { ICONS } from './Icons';
 import { attachTooltip } from './Tooltip';
 
@@ -27,7 +27,8 @@ const groupOf = (type: BuildableType) => TOOL_GROUPS.findIndex((group) => (group
 /**
  * Bottom toolbar. A young factory has a handful of tools in one row. Once research has
  * unlocked more than fit comfortably, they are split into Machines and Logistics, one group
- * showing at a time. Copy and Delete are always there. Number keys pick from what is showing.
+ * showing at a time. Copy and Delete are always there. Every tool has one number key for
+ * good, whichever group is showing; picking a tool brings its group into view.
  */
 export class BuildToolbar {
   private readonly entries = new Map<BuildableType, Entry>();
@@ -38,7 +39,7 @@ export class BuildToolbar {
   private readonly copyButton: HTMLButtonElement;
   private group = 0;
   private grouped = false;
-  /** The tools on show, in the order the number keys pick them. */
+  /** The tools on show, in order. */
   private visible: BuildableType[] = [];
   private unlocked: readonly string[] = [];
   private layoutKey = '';
@@ -53,7 +54,9 @@ export class BuildToolbar {
     for (const type of BUILD_ORDER) {
       const info = type === 'conveyor' ? CONVEYOR_INFO : getMachineDef(type);
       const cost = buildCost(type);
-      const key = el('span', { class: 'tool-key' });
+      // Number keys 1-9, then 0 for the tenth tool. A tool's key never changes.
+      const index = BUILD_ORDER.indexOf(type);
+      const key = el('span', { class: 'tool-key', text: index < 9 ? String(index + 1) : index === 9 ? '0' : '' });
       const button = el(
         'button',
         {
@@ -161,9 +164,9 @@ export class BuildToolbar {
     placement.events.on('toolChanged', (tool) => this.setTool(tool));
   }
 
-  /** Picks the tool in the given position on the bar (0 for the first), as the number keys do. */
+  /** Picks the tool a number key stands for: 0 for the key "1", up to 9 for the key "0". */
   pick(index: number): void {
-    const type = this.visible[index];
+    const type = BUILD_ORDER[index];
     if (type) this.placement.toggleBuild(type);
   }
 
@@ -204,10 +207,7 @@ export class BuildToolbar {
     this.layoutKey = key;
 
     this.tools.replaceChildren(...this.visible.map((type) => this.entries.get(type)!.button));
-    this.visible.forEach((type, index) => {
-      // Number keys 1-9, then 0 for the tenth tool.
-      setText(this.entries.get(type)!.key, index < 9 ? String(index + 1) : index === 9 ? '0' : '');
-    });
+
     this.tabs.classList.toggle('hidden', !this.grouped);
     this.tabButtons.forEach((tab, index) => {
       // A group with nothing unlocked in it yet is not worth a tab.

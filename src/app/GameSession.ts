@@ -50,7 +50,7 @@ import { MachinePanel } from '../ui/MachinePanel';
 import { downloadText, saveFileName } from '../ui/Notice';
 import { NotificationSystem } from '../ui/NotificationSystem';
 import { OfflineReportPanel } from '../ui/OfflineReportPanel';
-import { uiScale } from '../ui/preferences';
+import { reducedMotion, uiScale } from '../ui/preferences';
 import { PrestigePanel } from '../ui/PrestigePanel';
 import { ResearchPanel } from '../ui/ResearchPanel';
 import { SettingsPanel } from '../ui/SettingsPanel';
@@ -522,6 +522,11 @@ export class GameSession {
     this.save();
   }
 
+  /** Tells the player something in a toast. */
+  notify(message: string, seconds?: number): void {
+    this.notifications.toast(message, seconds);
+  }
+
   /** Switches the game's own mouse and keyboard handling off while something covers it. */
   setInputEnabled(enabled: boolean): void {
     if (!this.retired) this.input.setEnabled(enabled);
@@ -579,7 +584,7 @@ export class GameSession {
     this.overlay.update(factory, this.sim.metrics, realDt);
     this.updateCostLabel();
     const { renderer, camera } = this.ctx;
-    this.floatingText.update(realDt, camera.camera, renderer.width / uiScale(), renderer.height / uiScale());
+    this.floatingText.update(realDt, camera.camera, renderer.width / uiScale(), renderer.height / uiScale(), !reducedMotion());
     this.hoverCard.update(
       realDt,
       this.placement.currentHover,

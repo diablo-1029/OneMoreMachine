@@ -916,6 +916,7 @@ kbd {
 
 .research-modal {
   width: min(880px, 100%);
+  container: research / inline-size;
 }
 
 .research-tree {
@@ -1003,7 +1004,8 @@ kbd {
   cursor: not-allowed;
 }
 
-@media (max-width: 720px) {
+/* Judged by the dialog's own width, which stays right when the interface is enlarged. */
+@container research (max-width: 640px) {
   .research-tree {
     flex-direction: column;
   }

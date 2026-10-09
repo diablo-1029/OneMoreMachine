@@ -12,7 +12,7 @@ export interface KeyboardActions {
   toggleContracts: () => void;
   toggleAchievements: () => void;
   toggleBlueprints: () => void;
-  /** Picks the tool in this position on the toolbar, counting from 0. */
+  /** Picks the tool with this number, counting from 0. */
   pickTool: (index: number) => void;
   cycleToolGroup: () => void;
 }
@@ -25,6 +25,7 @@ export interface KeyboardActions {
  *   F              pick tool from what is under the cursor  B       bottleneck view
  *   T              research     C       contracts         G       achievements
  *   Ctrl+C         copy an area Ctrl+V  paste it          P       blueprints
+ *   Ctrl+Z         put back what was last removed
  */
 export class KeyboardController {
   enabled = true;
@@ -45,11 +46,14 @@ export class KeyboardController {
     if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
     if (!this.enabled || event.altKey) return;
     if (event.ctrlKey || event.metaKey) {
-      // Copy and paste are the only shortcuts that use a modifier.
+      // Copy, paste and undo are the only shortcuts that use a modifier.
       if (event.repeat) return;
       if (event.code === 'KeyC') {
         event.preventDefault();
         this.placement.toggleCopy();
+      } else if (event.code === 'KeyZ') {
+        event.preventDefault();
+        this.placement.undoDelete();
       } else if (event.code === 'KeyV') {
         event.preventDefault();
         this.placement.startPaste();
@@ -62,7 +66,7 @@ export class KeyboardController {
 
     const digit = /^Digit([0-9])$/.exec(event.code);
     if (digit) {
-      // 1-9 pick the first nine tools on the bar; 0 picks the tenth.
+      // 1-9 pick the first nine tools; 0 picks the tenth. Each tool keeps its number for good.
       this.actions.pickTool((Number(digit[1]) + 9) % 10);
       return;
     }

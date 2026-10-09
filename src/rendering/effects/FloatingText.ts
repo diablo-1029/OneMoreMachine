@@ -36,7 +36,7 @@ export class FloatingText {
     label.element.style.display = 'block';
   }
 
-  update(dt: number, camera: THREE.Camera, width: number, height: number): void {
+  update(dt: number, camera: THREE.Camera, width: number, height: number, rise = true): void {
     for (const label of this.labels) {
       if (!label.active) continue;
       label.age += dt;
@@ -47,7 +47,7 @@ export class FloatingText {
       }
       const t = label.age / LIFETIME;
       this.projected.copy(label.position);
-      this.projected.y += t * 0.9;
+      if (rise) this.projected.y += t * 0.9;
       this.projected.project(camera);
       const sx = (this.projected.x * 0.5 + 0.5) * width;
       const sy = (-this.projected.y * 0.5 + 0.5) * height;

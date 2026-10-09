@@ -28,7 +28,7 @@ const MOUSE: [string, string][] = [
   ['W A S D', 'Pan'],
   ['Q / E', 'Rotate view'],
   ['R', 'Rotate piece'],
-  ['1 – 9, 0', 'Build tools'],
+  ['1 – 9, 0', 'Build tools (each keeps its number)'],
   ['`', 'Next group of tools'],
   ['F', 'Pick tool under cursor'],
   ['X', 'Delete tool'],
@@ -39,6 +39,7 @@ const MOUSE: [string, string][] = [
   ['Ctrl C / V', 'Copy area · paste'],
   ['P', 'Blueprints'],
   ['Del', 'Remove selected'],
+  ['Ctrl Z', 'Put back what was removed'],
   ['Space', 'Pause'],
   ['Home', 'Centre view'],
 ];
@@ -48,7 +49,7 @@ const TOUCH: [string, string][] = [
   ['Drag', 'Lay belts · pan'],
   ['Two fingers', 'Pan and pinch to zoom'],
   ['Press and hold', 'What a button does'],
-  ['Side buttons', 'Rotate · cancel · turn the view'],
+  ['Side buttons', 'Rotate · cancel · put back · turn the view'],
 ];
 
 const table = (rows: [string, string][]) =>

@@ -36,7 +36,17 @@ export interface PlacementEvents {
   toolChanged: Tool;
   selectionChanged: Selection;
   message: string;
+  /** Whether there is a removal that could be put back. */
+  undoChanged: boolean;
 }
+
+/** Enough about something that was removed to build it again. */
+type Removed =
+  | { kind: 'conveyor'; x: number; y: number; direction: Direction }
+  | { kind: 'machine'; type: string; x: number; y: number; rotation: Direction; recipeId: string | null; level: number };
+
+/** How many removals (each a click, or one sweep of the Delete tool) can be undone. */
+const UNDO_LIMIT = 30;
 
 /** Where the build ghost is and what it would cost; drives the price tag next to the cursor. */
 export interface BuildHover {
@@ -86,6 +96,10 @@ export class PlacementController {
   private buildHover: BuildHover | null = null;
   /** What the cursor is resting on while the select tool is active. */
   private hovered: Selection = null;
+  /** Recent removals, newest last. Each entry is everything one click or one sweep took out. */
+  private readonly undoStack: Removed[][] = [];
+  /** The entry the current sweep is adding to; null between sweeps. */
+  private stroke: Removed[] | null = null;
   /** The recipe last chosen for each machine type, so the next one built makes the same thing. */
   private readonly lastRecipe = new Map<string, string>();
   /** Where the current copy drag started. */
@@ -106,6 +120,12 @@ export class PlacementController {
     sim.events.on('machineRemoved', (m) => this.dropSelectionIf(m.id));
     sim.events.on('conveyorRemoved', (c) => this.dropSelectionIf(c.id));
     sim.events.on('topologyChanged', () => this.refreshSelectionOutline());
+    // The floor grows on every side, so remembered positions no longer point at the same ground.
+    sim.events.on('factoryExpanded', () => {
+      this.undoStack.length = 0;
+      this.stroke = null;
+      this.events.emit('undoChanged', false);
+    });
   }
 
   get currentTool(): Tool {
@@ -255,6 +275,8 @@ export class PlacementController {
     } else if (this.tool.mode === 'delete') {
       const target = this.targetAt(ndcX, ndcY);
       this.dragCell = this.cellAt(ndcX, ndcY);
+      // Everything this press and drag removes is undone together.
+      this.stroke = null;
       if (target) this.remove(target);
     } else if (this.tool.mode === 'copy') {
       this.copyStart = this.cellAt(ndcX, ndcY);
@@ -387,7 +409,65 @@ export class PlacementController {
 
   deleteSelected(): void {
     const target = this.selectionTarget();
+    this.stroke = null;
     if (target) this.remove(target);
+  }
+
+  get canUndo(): boolean {
+    return this.undoStack.length > 0;
+  }
+
+  /**
+   * Puts back the last thing removed, or everything the last sweep of the Delete tool took.
+   * Rebuilding costs what removing refunded, so money ends up where it was. What a machine
+   * was holding is not brought back.
+   */
+  undoDelete(): void {
+    const batch = this.undoStack.pop();
+    this.stroke = null;
+    if (!batch) {
+      this.events.emit('message', 'Nothing to put back');
+      return;
+    }
+    let failure: CommandFailure | null = null;
+    for (const item of batch.reverse()) {
+      if (item.kind === 'conveyor') {
+        const result = this.sim.placeConveyor(item.x, item.y, item.direction);
+        if (!result.ok) failure ??= result.reason;
+        continue;
+      }
+      const result = this.sim.placeMachine(item.type, item.x, item.y, item.rotation, item.recipeId ?? undefined);
+      if (!result.ok) {
+        failure ??= result.reason;
+        continue;
+      }
+      while (result.value.level < item.level && this.sim.upgradeMachine(result.value.id).ok) {
+        // Each pass buys back one upgrade level.
+      }
+    }
+    this.audio.play(failure ? 'error' : 'place');
+    if (failure) this.events.emit('message', `Could not put everything back: ${FAILURE_MESSAGES[failure].toLowerCase()}`);
+    this.events.emit('undoChanged', this.canUndo);
+  }
+
+  /** Notes what is about to be removed, so it can be put back. */
+  private remember(target: Target): Removed | null {
+    const { factory } = this.sim.state;
+    if (target.kind === 'conveyor') {
+      const conveyor = factory.conveyors.get(target.id);
+      return conveyor ? { kind: 'conveyor', x: conveyor.gridX, y: conveyor.gridY, direction: conveyor.direction } : null;
+    }
+    const machine = factory.machines.get(target.id);
+    if (!machine) return null;
+    return {
+      kind: 'machine',
+      type: machine.type,
+      x: machine.gridX,
+      y: machine.gridY,
+      rotation: machine.rotation,
+      recipeId: machine.recipeId,
+      level: machine.level,
+    };
   }
 
   private dropSelectionIf(id: string): void {
@@ -446,8 +526,18 @@ export class PlacementController {
   }
 
   private remove(target: Target): void {
+    const removed = this.remember(target);
     const result = this.sim.removeAt(target.x, target.y);
     if (!result.ok) return;
+    if (removed) {
+      if (!this.stroke) {
+        this.stroke = [];
+        this.undoStack.push(this.stroke);
+        if (this.undoStack.length > UNDO_LIMIT) this.undoStack.shift();
+      }
+      this.stroke.push(removed);
+      this.events.emit('undoChanged', true);
+    }
     this.audio.play('remove');
     this.effects.dust(
       cellCenterX(target.x) + (target.w - 1) / 2,

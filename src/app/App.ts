@@ -79,6 +79,19 @@ export class App {
       setMotionPreference(this.settings.reduceMotion);
     });
 
+    // An error in a button or key handler does not stop the game, but the player should
+    // not be left wondering why nothing happened. Said at most once every few seconds.
+    let lastReported = -Infinity;
+    const report = (message: string) => {
+      // Browser housekeeping and other people's scripts are not the game going wrong.
+      if (this.failed || /ResizeObserver|Script error/i.test(message)) return;
+      if (performance.now() - lastReported < 8000) return;
+      lastReported = performance.now();
+      this.session?.notify('That did not work — something went wrong. If the game seems off, reload the page.', 6);
+    };
+    window.addEventListener('error', (event) => report(event.message));
+    window.addEventListener('unhandledrejection', (event) => report(String((event.reason as Error | undefined)?.message ?? event.reason)));
+
     // Audio may only start after a user gesture.
     const unlock = () => this.audio.unlock();
     window.addEventListener('pointerdown', unlock);

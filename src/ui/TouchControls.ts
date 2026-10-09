@@ -27,9 +27,13 @@ export class TouchControls {
 
     this.rotate = button('Rotate', ICONS.rotate, () => placement.rotate());
     this.cancel = button('Cancel', ICONS.cancel, () => placement.cancel());
+    const undo = button('Put back what was removed', ICONS.undo, () => placement.undoDelete());
+    undo.disabled = !placement.canUndo;
+    placement.events.on('undoChanged', (available) => (undo.disabled = !available));
     this.cluster = el('div', { class: 'touch-controls hidden', attrs: { role: 'group', 'aria-label': 'Touch controls' } }, [
       this.rotate,
       this.cancel,
+      undo,
       el('span', { class: 'touch-divider' }),
       button('Turn view left', ICONS.viewLeft, () => camera.rotate(1)),
       button('Turn view right', ICONS.viewRight, () => camera.rotate(-1)),

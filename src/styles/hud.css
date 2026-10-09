@@ -292,6 +292,29 @@ button.status-item:hover {
   height: 16px;
 }
 
+/* Paused: the button says so, and a frame round the screen makes a stopped factory unmistakable. */
+.speed-button .paused-label {
+  display: none;
+}
+
+.speed-button.active:first-child {
+  display: flex;
+  gap: 4px;
+  padding: 0 12px 0 8px;
+}
+
+.speed-button.active .paused-label {
+  display: inline;
+}
+
+#ui.paused::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 3px solid rgba(255, 181, 71, 0.6);
+  pointer-events: none;
+}
+
 .speed-button:hover {
   color: var(--text);
   background: var(--panel-raised);

@@ -18,6 +18,12 @@ export class Renderer {
     this.webgl.shadowMap.enabled = true;
     this.webgl.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(this.webgl.domElement);
+    // The picture itself cannot be read aloud; everything in it is also in the panels.
+    this.webgl.domElement.setAttribute('role', 'img');
+    this.webgl.domElement.setAttribute(
+      'aria-label',
+      'The factory floor in 3D. The toolbar and the panels in the top bar describe and control everything on it.',
+    );
 
     new ResizeObserver(() => this.resize()).observe(container);
     this.resize();

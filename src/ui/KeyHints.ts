@@ -11,7 +11,7 @@ function hintsFor(tool: Tool, selection: Selection): Hint[] {
         ? [['Drag', 'lay a line'], ['R', 'rotate'], ['Esc', 'done']]
         : [['Click', 'place'], ['R', 'rotate'], ['Esc', 'done']];
     case 'delete':
-      return [['Click', 'remove a machine'], ['Drag', 'clear belts'], ['Esc', 'done']];
+      return [['Click', 'remove a machine'], ['Drag', 'clear belts'], ['Ctrl Z', 'put back'], ['Esc', 'done']];
     case 'copy':
       return [['Drag', 'over what to copy'], ['Esc', 'cancel']];
     case 'paste':

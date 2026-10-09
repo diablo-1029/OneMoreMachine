@@ -115,6 +115,10 @@ export const ICONS: Record<string, string> = {
     '<path d="M25 16a9 9 0 11-3-6.700" stroke="currentColor" stroke-width="2.8"/>' +
       '<path d="M23 4v6h-6" stroke="currentColor" stroke-width="2.8"/>',
   ),
+  undo: svg(
+    '<path d="M8 13h11a6 6 0 010 12h-6" stroke="currentColor" stroke-width="2.8"/>' +
+      '<path d="M13 7l-6 6 6 6" stroke="currentColor" stroke-width="2.8"/>',
+  ),
   cancel: svg('<path d="M9 9l14 14M23 9L9 23" stroke="currentColor" stroke-width="3"/>'),
   viewLeft: svg(
     '<path d="M26 20a11 11 0 00-19-6" stroke="currentColor" stroke-width="2.8"/>' +

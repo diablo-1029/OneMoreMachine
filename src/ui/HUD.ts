@@ -68,7 +68,8 @@ export class HUD {
         onClick: () => actions.setSpeed(value),
         attrs: { type: 'button', 'aria-label': title.replace(/ \(.*\)$/, '') },
       });
-      if (value === 0) button.innerHTML = ICONS.pause;
+      // The pause button spells itself out while it is on, so a stopped factory explains itself.
+      if (value === 0) button.innerHTML = `${ICONS.pause}<span class="paused-label">Paused</span>`;
       else button.textContent = label;
       this.speedButtons.set(value, button);
       return button;
@@ -242,6 +243,7 @@ export class HUD {
   }
 
   setSpeed(speed: GameSpeed): void {
+    this.root.classList.toggle('paused', speed === 0);
     for (const [value, button] of this.speedButtons) {
       button.classList.toggle('active', value === speed);
       button.setAttribute('aria-pressed', String(value === speed));
