@@ -114,10 +114,15 @@ Two rules hold everything together:
 
 ## Releasing
 
-Every push runs the checks in `.github/workflows/ci.yml`. Pushes to `main` are also built and
-published to GitHub Pages by `deploy.yml`, once the repository is public and Pages is switched
-on (Settings → Pages → Source: GitHub Actions). The build uses relative paths, so `dist/` can
-equally be zipped and uploaded elsewhere, such as itch.io.
+The game is served by GitHub Pages from the `gh-pages` branch. To publish the current commit:
+
+```bash
+npm run publish:pages
+```
+
+That runs the tests, builds, and replaces `gh-pages` with the contents of `dist/`. Every push
+is also meant to run the checks in `.github/workflows/ci.yml`. The build uses relative paths,
+so `dist/` can equally be zipped and uploaded elsewhere, such as itch.io.
 
 ## Saves
 

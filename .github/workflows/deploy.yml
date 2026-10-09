@@ -1,11 +1,9 @@
 name: Deploy to GitHub Pages
 
-# Publishes the game whenever main changes. Needs Pages switched on for the repository
-# (Settings > Pages > Source: GitHub Actions). While the repository is private, pushes skip
-# this workflow rather than fail; it can still be run by hand from the Actions tab.
+# An alternative to `npm run publish:pages`: builds and publishes the game from GitHub's own
+# runners. Not in use. The site is currently served from the gh-pages branch; to switch to this
+# workflow, set Settings > Pages > Source to "GitHub Actions" and add a push trigger here.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -19,7 +17,6 @@ concurrency:
 
 jobs:
   build:
-    if: github.event_name == 'workflow_dispatch' || !github.event.repository.private
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
